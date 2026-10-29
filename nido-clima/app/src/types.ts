@@ -7,10 +7,9 @@ export interface Room {
   thermostat?: string;   // climate.* del termostato virtuale (Versatile/Better Thermostat), se esiste
   tempSensor: string;    // sensor.* temperatura ambiente
   humSensor?: string;    // sensor.* umidità
-  valveDeviceTemp?: string; // sensor.* temperatura interna del corpo valvola (device_temperature)
   valveSensorMode?: string; // select.* che indica se la valvola usa il sensore interno o esterno
   valveTempSensor?: string; // sensore indicato a mano per la temperatura del termosifone
-  valveTempSource?: 'valvola' | 'interna' | 'manuale'; // da dove arriva, aggiornato a ogni lettura
+  valveTempSource?: 'valvola' | 'manuale'; // da dove arriva, aggiornato a ogni lettura
   valveExternal?: boolean; // la valvola usa come sensore il sensore della stanza
   source: 'auto' | 'manuale' | 'demo';
 }
@@ -21,7 +20,6 @@ export interface Sample {
   hRoom: number | null;     // umidità
   tValve: number | null;    // temperatura del termosifone usata per il rilevamento
   tValveLocal?: number | null;    // temperatura riportata dalla valvola (local_temperature)
-  tValveInternal?: number | null; // temperatura interna del corpo valvola (device_temperature)
   setpoint: number | null;  // temperatura desiderata
   mode: string | null;      // heat / off / ...
   heating?: boolean;        // esito del rilevamento

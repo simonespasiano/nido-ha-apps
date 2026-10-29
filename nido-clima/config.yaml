@@ -1,5 +1,5 @@
 name: NIDO Clima
-version: "0.5.2"
+version: "0.5.3"
 slug: nido_clima
 description: Stanze, valvole e sensori in chiaro, rilevamento del calorifero acceso e diario di ciò che accade
 url: https://github.com/simonespasiano/nido-ha-apps
@@ -21,7 +21,6 @@ options:
   intervallo_secondi: 60
   conserva_giorni: 120
   pubblica_sensori: true
-  fonte_termosifone: auto
 schema:
   stanze:
     - nome: str
@@ -35,4 +34,3 @@ schema:
   intervallo_secondi: int(15,600)
   conserva_giorni: int(7,730)
   pubblica_sensori: bool
-  fonte_termosifone: list(auto|valvola|interna)

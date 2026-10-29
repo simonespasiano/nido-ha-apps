@@ -85,7 +85,6 @@ export class DemoSource implements DataSource {
       hRoom: Math.round(52 + 6 * Math.sin(at / 7_200_000 + sim.kRad * 1000)),
       tValve: Math.round(tValve * 10) / 10,
       tValveLocal: Math.round(tValve * 10) / 10,
-      tValveInternal: Math.round(tValve + 0.4),
       setpoint: setpoint(sim, at),
       mode: sim.mode,
     };

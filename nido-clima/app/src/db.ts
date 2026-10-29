@@ -33,7 +33,7 @@ export class Store {
     this.db.prepare(
       `INSERT INTO samples (ts, room, t_room, h_room, t_valve, setpoint, mode, heating, t_valve_local, t_valve_internal)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(s.ts, room, s.tRoom, s.hRoom, s.tValve, s.setpoint, s.mode, s.heating ? 1 : 0, s.tValveLocal ?? null, s.tValveInternal ?? null);
+    ).run(s.ts, room, s.tRoom, s.hRoom, s.tValve, s.setpoint, s.mode, s.heating ? 1 : 0, s.tValveLocal ?? null, null);
   }
 
   history(room: string, since: number, maxPoints = 600, until = Number.MAX_SAFE_INTEGER): Sample[] {
@@ -48,7 +48,7 @@ export class Store {
       out.push({
         ts: r.ts, tRoom: r.t_room, hRoom: r.h_room, tValve: r.t_valve,
         setpoint: r.setpoint, mode: r.mode, heating: r.heating === 1,
-        tValveLocal: r.t_valve_local, tValveInternal: r.t_valve_internal,
+        tValveLocal: r.t_valve_local,
       });
     }
     return out;

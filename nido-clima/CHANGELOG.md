@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.3
+
+- Rimossa ovunque la temperatura interna del chip della valvola (`device_temperature`): non compare più su schede, pannello Gestisci, grafico, tabella e CSV, e non viene usata per il rilevamento
+- Rimossa l'opzione `fonte_termosifone`
+- Con la valvola sul sensore esterno la scheda avvisa che il rilevamento non è possibile, invece di mostrare una stima
+
 ## 0.5.2
 
 - Scheda **Soglie** → **Dati raccolti**: mostra quante letture ed eventi ci sono e permette di **cancellare storico e diario** per ripartire da zero, mantenendo (o, a scelta, azzerando) le soglie salvate

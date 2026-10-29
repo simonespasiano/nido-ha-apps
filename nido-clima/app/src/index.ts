@@ -10,7 +10,7 @@ import { HttpError, MiniServer } from './http.js';
 import type { DataSource } from './types.js';
 import type { Action } from './controls.js';
 
-const VERSION = '0.5.2';
+const VERSION = '0.5.3';
 const here = dirname(fileURLToPath(import.meta.url));
 
 async function main() {

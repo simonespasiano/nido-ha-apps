@@ -120,11 +120,12 @@ async function loadRooms() {
         <div class="fig">Umidità<b>${s.hRoom == null ? '–' : Math.round(s.hRoom) + ' %'}</b></div>
         <div class="fig">Obiettivo<b>${n1(s.setpoint)}°</b></div>
         ${v.room.valveExternal ? '' : tempFig('Valvola', s.tValveLocal ?? (v.room.valveTempSource === 'valvola' ? s.tValve : null), v.room.valveTempSource === 'valvola', 'Temperatura misurata dalla valvola')}
-        ${s.tValveInternal != null || v.room.valveTempSource === 'interna' ? tempFig('Interna valvola', s.tValveInternal ?? s.tValve, v.room.valveTempSource === 'interna', 'Temperatura interna del corpo valvola, vicino al termosifone') : ''}
         ${v.room.valveTempSource === 'manuale' ? tempFig('Sonda', s.tValve, true, 'Sonda indicata nella configurazione') : ''}
         </div>
       </div>
-      <p class="reason">${esc(st?.reason ?? '')}${want}</p>
+      <p class="reason">${v.room.valveExternal && v.room.valveTempSource !== 'manuale'
+        ? '⚠ La valvola usa il sensore esterno: la sua temperatura è quella della stanza, quindi non si può capire se il termosifone scalda. Riportala su <i>internal</i> da Gestisci.'
+        : esc(st?.reason ?? '') + want}</p>
       <div class="chart-wrap" data-zoom="${esc(v.room.id)}" title="Tocca per ingrandire">${chart(histories[i])}<span class="zoom-hint">⤢ Ingrandisci</span></div>
       <div class="meta"><span>Caldo oggi: <b>${dur(v.todayMinutes)}</b></span><span>${st ? (heat ? 'acceso ' : 'spento ') + ago(st.since) : ''} · affidabilità ${st?.confidence ?? '–'}</span></div>
       <div class="card-actions">
