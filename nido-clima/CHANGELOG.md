@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1
+
+- Diagnosi delle aree quando nessuna stanza viene riconosciuta: cosa c'è e cosa manca in ogni area, dispositivi senza area
+- Riconoscimento sensori anche dall'unità di misura (°C, %)
+- Ricerca delle stanze ogni minuto finché non ne trova
+
 ## 0.1.0
 
 - Riconoscimento automatico delle stanze dalle aree (valvola + sensore + termostato virtuale)

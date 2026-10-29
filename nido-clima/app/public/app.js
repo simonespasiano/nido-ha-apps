@@ -86,7 +86,16 @@ async function loadRooms() {
   }
 
   if (!overview.rooms.length) {
-    $('#rooms').innerHTML = `<div class="empty"><b>Nessuna stanza trovata.</b><br>Assegna valvola e sensore di temperatura alla stessa area in <i>Impostazioni → Aree, piani e zone</i>, oppure indica le stanze a mano nella configurazione dell'app. Le stanze vengono ricontrollate ogni 10 minuti.</div>`;
+    const d = await api('api/diagnosis').catch(() => null);
+    const ok = v => v ? `<span title="${esc(v)}">✅ ${esc(v)}</span>` : '<span style="color:var(--warn)">❌ manca</span>';
+    const rows = (d?.areas ?? []).map(a => `<tr><td><b>${esc(a.area)}</b></td><td>${ok(a.valve)}</td><td>${a.thermostat ? '✅ ' + esc(a.thermostat) : '–'}</td><td>${ok(a.temp)}</td><td>${a.hum ? '✅ ' + esc(a.hum) : '–'}</td></tr>`).join('');
+    const un = d?.unassigned?.length
+      ? `<p><b>Senza area</b> (assegnali a una stanza): ${d.unassigned.map(e => `<code>${esc(e)}</code>`).join(', ')}</p>` : '';
+    $('#rooms').innerHTML = `<div class="empty"><b>Nessuna stanza trovata.</b> Una stanza nasce quando nella stessa area ci sono una <b>valvola</b> e un <b>sensore di temperatura</b>.
+      Assegna i dispositivi in <i>Impostazioni → Dispositivi e servizi → Dispositivi</i> (campo Area), oppure indica le stanze a mano nella configurazione dell'app. Controllo di nuovo ogni minuto finché non trova stanze.
+      ${un}
+      ${rows ? `<div class="scroll" style="margin-top:12px"><table><thead><tr><th>Area</th><th>Valvola</th><th>Termostato virtuale</th><th>Temperatura</th><th>Umidità</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<p>Non ci sono aree in Home Assistant.</p>'}
+    </div>`;
     return;
   }
 

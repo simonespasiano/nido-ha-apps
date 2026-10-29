@@ -1,4 +1,4 @@
-import type { DataSource, EntityInfo, PlantStatus, Room, RoomStatus, Sample } from './types.js';
+import type { AreaDiagnosis, DataSource, Diagnosis, EntityInfo, PlantStatus, Room, RoomStatus, Sample } from './types.js';
 import type { Options } from './config.js';
 
 interface HAState {
@@ -46,7 +46,13 @@ export class HASource implements DataSource {
     await this.connect();
     await this.discover();
     // rilegge stanze e registri ogni 10 minuti (nuovi dispositivi, aree cambiate)
-    setInterval(() => this.discover().catch(e => this.onLog(`Errore aggiornamento stanze: ${e}`)), 10 * 60_000);
+    // (ogni minuto finché non ci sono stanze, così le modifiche alle aree si vedono subito)
+    let last = Date.now();
+    setInterval(() => {
+      if (this.roomList.length && Date.now() - last < 10 * 60_000) return;
+      last = Date.now();
+      this.discover().catch(e => this.onLog(`Errore aggiornamento stanze: ${e}`));
+    }, 60_000);
   }
 
   private connect(): Promise<void> {
@@ -128,29 +134,55 @@ export class HASource implements DataSource {
     } else {
       const active = entities.filter((e: any) => !e.disabled_by && !e.entity_id.includes(OWN_PREFIX));
       const rooms: Room[] = [];
+      const diag: AreaDiagnosis[] = [];
+      const isTemp = (id: string) => {
+        const a = this.states.get(id)?.attributes ?? {};
+        return a.device_class === 'temperature' || a.unit_of_measurement === '°C';
+      };
+      const isHum = (id: string) => {
+        const a = this.states.get(id)?.attributes ?? {};
+        return a.device_class === 'humidity' || (a.unit_of_measurement === '%' && /umid|humid/i.test(id));
+      };
       for (const area of areas) {
         const inArea = active.filter((e: any) => this.entityArea.get(e.entity_id) === area.area_id);
         const climates = inArea.filter((e: any) => e.entity_id.startsWith('climate.'));
         const valve = climates.find((e: any) => !VIRTUAL_THERMOSTATS.has(e.platform));
-        if (!valve) continue;
         const thermostat = climates.find((e: any) => VIRTUAL_THERMOSTATS.has(e.platform));
-        const valveDevice = entityDevice.get(valve.entity_id);
-        const byClass = (cls: string) => inArea.find((e: any) =>
+        const valveDevice = valve ? entityDevice.get(valve.entity_id) : undefined;
+        const pick = (test: (id: string) => boolean) => inArea.find((e: any) =>
           e.entity_id.startsWith('sensor.') &&
-          entityDevice.get(e.entity_id) !== valveDevice &&
-          this.states.get(e.entity_id)?.attributes.device_class === cls)?.entity_id;
-        const temp = area.temperature_entity_id ?? byClass('temperature');
-        if (!temp) continue;
+          (!valveDevice || entityDevice.get(e.entity_id) !== valveDevice) &&
+          test(e.entity_id))?.entity_id as string | undefined;
+        const temp: string | undefined = area.temperature_entity_id ?? pick(isTemp);
+        const hum: string | undefined = area.humidity_entity_id ?? pick(isHum);
+        const missing: string[] = [];
+        if (!valve) missing.push(thermostat ? 'valvola reale (c\'è solo il termostato virtuale)' : 'valvola');
+        if (!temp) missing.push('sensore di temperatura');
+        diag.push({ area: area.name, valve: valve?.entity_id ?? null, thermostat: thermostat?.entity_id ?? null,
+          temp: temp ?? null, hum: hum ?? null, entities: inArea.length, missing });
+        if (!valve || !temp) continue;
         rooms.push({
           id: slugify(area.name), name: area.name, valve: valve.entity_id,
-          thermostat: thermostat?.entity_id, tempSensor: temp,
-          humSensor: area.humidity_entity_id ?? byClass('humidity'), source: 'auto',
+          thermostat: thermostat?.entity_id, tempSensor: temp, humSensor: hum, source: 'auto',
         });
       }
+      // valvole e sensori senza area: la causa più frequente di "nessuna stanza"
+      const unassigned = active.filter((e: any) => !this.entityArea.get(e.entity_id) && (
+        (e.entity_id.startsWith('climate.') && !VIRTUAL_THERMOSTATS.has(e.platform)) ||
+        (e.entity_id.startsWith('sensor.') && isTemp(e.entity_id) && this.states.get(e.entity_id)?.attributes.device_class === 'temperature')
+      )).map((e: any) => e.entity_id as string);
+      this.diagnosis = { areas: diag, unassigned, mode: 'auto' };
+      for (const d of diag.filter(d => d.missing.length && (d.valve || d.thermostat || d.temp))) {
+        this.onLog(`Area "${d.area}": manca ${d.missing.join(' e ')}`);
+      }
+      if (unassigned.length) this.onLog(`Senza area: ${unassigned.join(', ')}`);
       this.roomList = rooms;
     }
+    if (manual.length) this.diagnosis = { areas: [], unassigned: [], mode: 'manuale' };
     this.onLog(`Stanze trovate: ${this.roomList.map(r => r.name).join(', ') || 'nessuna'}`);
   }
+
+  diagnosis: Diagnosis = { areas: [], unassigned: [], mode: 'auto' };
 
   rooms() { return this.roomList; }
 

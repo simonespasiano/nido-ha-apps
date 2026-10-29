@@ -8,7 +8,7 @@ import { DemoSource } from './demo.js';
 import { HttpError, MiniServer } from './http.js';
 import type { DataSource } from './types.js';
 
-const VERSION = '0.1.0';
+const VERSION = '0.1.1';
 const here = dirname(fileURLToPath(import.meta.url));
 
 async function main() {
@@ -66,6 +66,8 @@ async function main() {
   app.get('/api/stats', () => src.rooms().map(r => roomStats(store, r)));
 
   app.get('/api/entities', () => src.listEntities?.() ?? []);
+
+  app.get('/api/diagnosis', () => src.diagnosis ?? { areas: [], unassigned: [], mode: 'auto' });
 
   app.get('/api/settings', () => ({
     soglia_accensione: opts.soglia_accensione,

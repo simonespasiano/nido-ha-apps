@@ -51,6 +51,7 @@ export interface DataSource {
   publish?(room: Room, status: RoomStatus, plant: PlantStatus): Promise<void>;
   publishPlant?(plant: PlantStatus): Promise<void>;
   listEntities?(): EntityInfo[];
+  diagnosis?: Diagnosis;
 }
 
 export interface PlantStatus {
@@ -67,4 +68,20 @@ export interface EntityInfo {
   state: string;
   unit?: string;
   role: string; // descrizione in chiaro: "Valvola termostatica", "Sensore temperatura"...
+}
+
+export interface AreaDiagnosis {
+  area: string;
+  valve: string | null;
+  thermostat: string | null;
+  temp: string | null;
+  hum: string | null;
+  entities: number;
+  missing: string[];
+}
+
+export interface Diagnosis {
+  areas: AreaDiagnosis[];
+  unassigned: string[];
+  mode: 'auto' | 'manuale';
 }
