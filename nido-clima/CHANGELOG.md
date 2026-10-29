@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.0
+
+- Nuova scheda **Soglie**: tutte le soglie di rilevamento modificabili dall'interfaccia (differenza di accensione e spegnimento, salita e discesa della valvola, finestra aperta, minuti di calcolo)
+- Valori diversi per singola stanza; le modifiche valgono subito e vengono registrate nel diario
+- **Prova queste soglie**: le riapplica allo storico e mostra accensioni, tempo caldo e distribuzione della differenza valvola − stanza
+
 ## 0.3.0
 
 - Grafico ingrandito: tocca il grafico di una stanza per aprirlo a tutta pagina

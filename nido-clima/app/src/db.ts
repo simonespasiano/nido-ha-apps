@@ -21,6 +21,7 @@ export class Store {
         ts INTEGER NOT NULL, room TEXT, kind TEXT NOT NULL, message TEXT NOT NULL
       );
       CREATE INDEX IF NOT EXISTS idx_events_ts ON events(ts);
+      CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
     `);
   }
 
@@ -89,6 +90,21 @@ export class Store {
     const limit = Date.now() - days * 86_400_000;
     this.db.prepare(`DELETE FROM samples WHERE ts < ?`).run(limit);
     this.db.prepare(`DELETE FROM events WHERE ts < ?`).run(limit);
+  }
+
+  getSetting<T>(key: string): T | null {
+    const r = this.db.prepare(`SELECT value FROM settings WHERE key = ?`).get(key) as any;
+    if (!r) return null;
+    try { return JSON.parse(r.value) as T; } catch { return null; }
+  }
+
+  setSetting(key: string, value: unknown) {
+    this.db.prepare(`INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`)
+      .run(key, JSON.stringify(value));
+  }
+
+  deleteSetting(key: string) {
+    this.db.prepare(`DELETE FROM settings WHERE key = ?`).run(key);
   }
 
   isEmpty(): boolean {

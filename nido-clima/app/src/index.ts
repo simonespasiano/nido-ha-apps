@@ -2,14 +2,15 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { DATA_DIR, DEMO, PORT, loadOptions } from './config.js';
 import { Store } from './db.js';
-import { Engine, roomStats } from './engine.js';
+import { Engine, roomStats, simulate } from './engine.js';
+import { DEFAULT_DETECTOR, DETECTOR_LIMITS, sanitizeDetector } from './detector.js';
 import { HASource } from './ha.js';
 import { DemoSource } from './demo.js';
 import { HttpError, MiniServer } from './http.js';
 import type { DataSource } from './types.js';
 import type { Action } from './controls.js';
 
-const VERSION = '0.3.0';
+const VERSION = '0.4.0';
 const here = dirname(fileURLToPath(import.meta.url));
 
 async function main() {
@@ -20,8 +21,9 @@ async function main() {
   const startTs = Date.now() - 36 * 3_600_000;
   const src: DataSource = DEMO ? new DemoSource(startTs) : new HASource(opts, log);
   const engine = new Engine(src, store, {
+    ...DEFAULT_DETECTOR,
     onDelta: opts.soglia_accensione,
-    offDelta: opts.soglia_spegnimento,
+    offDelta: Math.min(opts.soglia_spegnimento, opts.soglia_accensione - 0.1),
   }, opts.pubblica_sensori && !DEMO);
 
   try {
@@ -97,9 +99,35 @@ async function main() {
 
   app.get('/api/diagnosis', () => src.diagnosis ?? { areas: [], unassigned: [], mode: 'auto' });
 
+  app.get('/api/thresholds', () => ({ ...engine.thresholds, limits: DETECTOR_LIMITS,
+    rooms_list: src.rooms().map(r => ({ id: r.id, name: r.name })) }));
+
+  app.post('/api/thresholds', (_p, _q, req, body) => {
+    let t;
+    try { t = body?.reset ? engine.resetThresholds() : engine.saveThresholds(body ?? {}); }
+    catch (err) { throw new HttpError(400, err instanceof Error ? err.message : String(err)); }
+    const who = req.headers['x-remote-user-display-name'] ?? req.headers['x-remote-user-name'];
+    const g = t.global;
+    engine.log(`${body?.reset ? 'Soglie riportate ai valori della configurazione' : 'Soglie modificate'}: acceso sopra +${g.onDelta} °C, spento sotto +${g.offDelta} °C`
+      + `${Object.keys(t.rooms).length ? ` (valori propri per ${Object.keys(t.rooms).length} ${Object.keys(t.rooms).length === 1 ? 'stanza' : 'stanze'})` : ''}${who ? ` — da ${who}` : ''}`);
+    return t;
+  });
+
+  app.post('/api/thresholds/simulate', (_p, _q, _req, body) => {
+    const hours = Math.min(24 * 30, Math.max(1, Number(body?.hours ?? 24)));
+    const to = Date.now(), from = to - hours * 3_600_000;
+    try {
+      const global = sanitizeDetector(body?.global ?? {}, engine.thresholds.global);
+      return src.rooms().map(r => {
+        const cfg = sanitizeDetector(body?.rooms?.[r.id] ?? {}, global);
+        return simulate(store, r, cfg, from, to);
+      });
+    } catch (err) { throw new HttpError(400, err instanceof Error ? err.message : String(err)); }
+  });
+
   app.get('/api/settings', () => ({
-    soglia_accensione: opts.soglia_accensione,
-    soglia_spegnimento: opts.soglia_spegnimento,
+    soglia_accensione: engine.thresholds.global.onDelta,
+    soglia_spegnimento: engine.thresholds.global.offDelta,
     intervallo_secondi: opts.intervallo_secondi,
     conserva_giorni: opts.conserva_giorni,
     pubblica_sensori: opts.pubblica_sensori,

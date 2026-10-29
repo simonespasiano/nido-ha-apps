@@ -71,7 +71,13 @@ Puoi usarli nelle automazioni normali. Questi sensori spariscono se l'app è fer
 | `conserva_giorni` | 120 | per quanti giorni tenere lo storico |
 | `pubblica_sensori` | true | crea i sensori in Home Assistant |
 
-Dopo 1–2 settimane di dati conviene guardare i grafici e, se serve, ritoccare le soglie.
+Le due soglie della configurazione sono solo i **valori di partenza**. Tutte le soglie si modificano dalla scheda **Soglie** dell'app,
+anche con valori diversi per singola stanza, e valgono subito senza riavviare. Una volta salvate da lì, hanno la precedenza sulla configurazione;
+il pulsante *Valori della configurazione* torna a quelli dell'opzione.
+
+Prima di salvare, **Prova queste soglie** le riapplica allo storico e mostra per ogni stanza quante accensioni avrebbe visto,
+il tempo caldo e la distribuzione della differenza valvola − stanza: se la differenza massima resta sotto la soglia di accensione,
+quel termosifone non verrà mai riconosciuto.
 
 ## Dati
 

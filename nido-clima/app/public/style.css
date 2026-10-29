@@ -228,3 +228,20 @@ dialog.wide { width: min(1100px, calc(100vw - 16px)); }
 .zoom-table tr.hot td { background: var(--heat); }
 .zoom-table tr.picked td { background: var(--room); color: #fff; }
 .zoom-table .ev-row td { color: var(--muted); font-style: italic; background: var(--bg); white-space: normal; }
+
+/* ---------- soglie ---------- */
+.soglie { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 14px; align-items: start; }
+@media (max-width: 400px) { .soglie { grid-template-columns: 1fr; } }
+label.inline { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.th-form { display: flex; flex-direction: column; gap: 4px; }
+.th-row { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center; padding: 8px 0; border-top: 1px dashed var(--line); }
+.th-row:first-child { border-top: 0; }
+.th-row small { display: block; color: var(--muted); font-size: 12px; }
+.th-row .num { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.th-row input { width: 80px; font: inherit; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); text-align: right; }
+.th-row input.over { border-color: var(--valve); }
+.th-row .unit { color: var(--muted); font-size: 13px; width: 42px; }
+.th-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
+.btn.primary { background: var(--valve); border-color: var(--valve); color: #fff; }
+.th-graph { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: var(--bg); margin-top: 4px; min-width: 120px; }
+#th-result td { white-space: nowrap; }

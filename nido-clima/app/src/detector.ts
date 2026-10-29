@@ -1,8 +1,36 @@
 import type { PlantStatus, RoomStatus, Sample } from './types.js';
 
 export interface DetectorConfig {
-  onDelta: number;   // differenza valvola−stanza oltre cui il calorifero è caldo
-  offDelta: number;  // differenza sotto cui torna freddo
+  onDelta: number;       // differenza valvola−stanza oltre cui il termosifone è caldo (°C)
+  offDelta: number;      // differenza sotto cui torna freddo (°C)
+  onSlope: number;       // salita della valvola che anticipa l'accensione (°C/ora)
+  offSlope: number;      // discesa della valvola che anticipa lo spegnimento (°C/ora, valore positivo)
+  windowSlope: number;   // calo della stanza che fa sospettare una finestra aperta (°C/ora, valore positivo)
+  valveWindowMin: number; // minuti su cui calcolare la pendenza della valvola
+}
+
+export const DEFAULT_DETECTOR: DetectorConfig = {
+  onDelta: 2.5, offDelta: 1.2, onSlope: 4, offSlope: 3, windowSlope: 2, valveWindowMin: 20,
+};
+
+/** Limiti ammessi per ogni parametro, usati per validare ciò che arriva dall'interfaccia. */
+export const DETECTOR_LIMITS: Record<keyof DetectorConfig, [number, number]> = {
+  onDelta: [0.2, 20], offDelta: [0, 15], onSlope: [0.5, 60], offSlope: [0.5, 60],
+  windowSlope: [0.5, 20], valveWindowMin: [5, 90],
+};
+
+export function sanitizeDetector(input: Partial<Record<keyof DetectorConfig, unknown>>, base: DetectorConfig): DetectorConfig {
+  const out = { ...base };
+  for (const k of Object.keys(DETECTOR_LIMITS) as (keyof DetectorConfig)[]) {
+    const v = input[k];
+    if (v === undefined || v === null || v === '') continue;
+    const n = Number(v);
+    const [lo, hi] = DETECTOR_LIMITS[k];
+    if (!Number.isFinite(n) || n < lo || n > hi) throw new Error(`Valore non valido per ${k}: deve stare tra ${lo} e ${hi}`);
+    out[k] = n;
+  }
+  if (out.offDelta >= out.onDelta) throw new Error('La soglia di spegnimento deve essere più bassa di quella di accensione');
+  return out;
 }
 
 /** Pendenza in °C/ora per regressione lineare sugli ultimi `windowMin` minuti. */
@@ -37,7 +65,7 @@ export function detect(cfg: DetectorConfig, recent: Sample[], current: Sample, p
   const now = current.ts;
   const all = [...recent, current];
   const delta = current.tValve != null && current.tRoom != null ? current.tValve - current.tRoom : null;
-  const sV = slope(all, 'tValve', 20, now);
+  const sV = slope(all, 'tValve', cfg.valveWindowMin, now);
   const sR = slope(all, 'tRoom', 15, now);
   const wasHeating = prev?.heating ?? false;
 
@@ -50,11 +78,11 @@ export function detect(cfg: DetectorConfig, recent: Sample[], current: Sample, p
     if (delta >= cfg.onDelta) {
       heating = true;
       reason = `Il termosifone è ${fmt(delta)} °C più caldo della stanza`;
-    } else if (delta >= cfg.offDelta && sV != null && sV >= 4) {
+    } else if (delta >= cfg.offDelta && sV != null && sV >= cfg.onSlope) {
       heating = true;
       reason = `Il termosifone si sta scaldando in fretta (+${fmt(sV)} °C/ora)`;
     } else {
-      reason = sV != null && sV >= 1.5
+      reason = sV != null && sV >= cfg.onSlope / 2.5
         ? `Il termosifone sta salendo (+${fmt(sV)} °C/ora), in attesa di conferma`
         : `Termosifone alla temperatura della stanza (differenza ${fmt(delta)} °C)`;
     }
@@ -62,7 +90,7 @@ export function detect(cfg: DetectorConfig, recent: Sample[], current: Sample, p
     if (delta <= cfg.offDelta) {
       heating = false;
       reason = `Il termosifone è tornato alla temperatura della stanza (${fmt(delta)} °C)`;
-    } else if (sV != null && sV <= -3 && delta < cfg.onDelta) {
+    } else if (sV != null && sV <= -cfg.offSlope && delta < cfg.onDelta) {
       heating = false;
       reason = `Il termosifone si sta raffreddando (${fmt(sV)} °C/ora)`;
     } else {
@@ -80,7 +108,7 @@ export function detect(cfg: DetectorConfig, recent: Sample[], current: Sample, p
   }
 
   // calo rapido della stanza: con il termosifone acceso la stanza dovrebbe salire, quindi è un segnale ancora più forte
-  const window = sR != null && sR <= (heating ? -1.5 : -2);
+  const window = sR != null && sR <= -(heating ? cfg.windowSlope * 0.75 : cfg.windowSlope);
   const requesting = current.mode !== 'off' && current.setpoint != null && current.tRoom != null
     && current.setpoint > current.tRoom + 0.3;
 

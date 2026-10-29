@@ -1,9 +1,17 @@
-import { detect, plantState, type DetectorConfig } from './detector.js';
+import { detect, plantState, sanitizeDetector, type DetectorConfig } from './detector.js';
 import type { Store } from './db.js';
 import type { AppEvent, DataSource, PlantStatus, Room, RoomStatus, Sample } from './types.js';
 
 const fmt = (n: number) => n.toFixed(1).replace('.', ',');
 const BUFFER_MIN = 40;
+
+export interface ThresholdSettings {
+  global: DetectorConfig;
+  rooms: Record<string, Partial<DetectorConfig>>; // valori diversi per singola stanza
+  source: 'opzioni' | 'interfaccia';
+}
+
+const SETTINGS_KEY = 'soglie';
 
 export interface RoomView {
   room: Room;
@@ -21,12 +29,45 @@ export class Engine {
   plant?: PlantStatus;
   lastTick = 0;
 
+  thresholds: ThresholdSettings;
+
   constructor(
     private src: DataSource,
     private store: Store,
-    private cfg: DetectorConfig,
+    private defaults: DetectorConfig,
     private publishEnabled: boolean,
-  ) {}
+  ) {
+    const saved = store.getSetting<Omit<ThresholdSettings, 'source'>>(SETTINGS_KEY);
+    this.thresholds = saved
+      ? { global: { ...defaults, ...saved.global }, rooms: saved.rooms ?? {}, source: 'interfaccia' }
+      : { global: { ...defaults }, rooms: {}, source: 'opzioni' };
+  }
+
+  cfgFor(roomId: string): DetectorConfig {
+    return { ...this.thresholds.global, ...(this.thresholds.rooms[roomId] ?? {}) };
+  }
+
+  /** Valida e salva le soglie; restituisce quelle effettive. Lancia un errore leggibile se non valide. */
+  saveThresholds(input: { global?: Partial<DetectorConfig>; rooms?: Record<string, Partial<DetectorConfig>> }) {
+    const global = sanitizeDetector(input.global ?? {}, this.thresholds.global);
+    const rooms: Record<string, Partial<DetectorConfig>> = {};
+    for (const [id, over] of Object.entries(input.rooms ?? {})) {
+      if (!over || !Object.keys(over).length) continue;
+      const full = sanitizeDetector(over, global);
+      const diff: Partial<DetectorConfig> = {};
+      for (const k of Object.keys(over) as (keyof DetectorConfig)[]) if (over[k] !== undefined && over[k] !== null && (over[k] as unknown) !== '') diff[k] = full[k] as never;
+      if (Object.keys(diff).length) rooms[id] = diff;
+    }
+    this.store.setSetting(SETTINGS_KEY, { global, rooms });
+    this.thresholds = { global, rooms, source: 'interfaccia' };
+    return this.thresholds;
+  }
+
+  resetThresholds() {
+    this.store.deleteSetting(SETTINGS_KEY);
+    this.thresholds = { global: { ...this.defaults }, rooms: {}, source: 'opzioni' };
+    return this.thresholds;
+  }
 
   log(message: string, room: string | null = null, kind: AppEvent['kind'] = 'sistema', ts = Date.now()) {
     this.store.insertEvent({ ts, room, kind, message });
@@ -38,7 +79,7 @@ export class Engine {
       const sample = this.src.read(room, now);
       const buf = (this.buffers.get(room.id) ?? []).filter(s => s.ts >= now - BUFFER_MIN * 60_000);
       const prev = this.statuses.get(room.id);
-      const status = detect(this.cfg, buf, sample, prev);
+      const status = detect(this.cfgFor(room.id), buf, sample, prev);
       sample.heating = status.heating;
 
       // eventi leggibili per il diario
@@ -135,5 +176,46 @@ export function roomStats(store: Store, room: Room) {
     heatRate: median(rates.heat),
     coolRate: median(rates.cool),
     heatSamples: rates.heat.length,
+  };
+}
+
+/**
+ * Riesegue il rilevamento sullo storico con soglie diverse, senza toccare nulla:
+ * serve a vedere in anteprima l'effetto di una modifica.
+ */
+export function simulate(store: Store, room: Room, cfg: DetectorConfig, from: number, to: number) {
+  const hist = store.history(room.id, from - BUFFER_MIN * 60_000, 1_000_000, to);
+  let prev: RoomStatus | undefined;
+  const buf: Sample[] = [];
+  const periods: { start: number; end: number; maxDelta: number }[] = [];
+  let open: { start: number; maxDelta: number } | null = null;
+  let heatingMs = 0, lastTs: number | null = null, lastHeating = false, actualMs = 0, agree = 0, total = 0;
+  for (const s of hist) {
+    while (buf.length && buf[0].ts < s.ts - BUFFER_MIN * 60_000) buf.shift();
+    const st = detect(cfg, buf, { ...s }, prev);
+    buf.push(s);
+    prev = st;
+    if (s.ts < from) continue;
+    if (lastTs != null && s.ts - lastTs < 15 * 60_000) {
+      if (lastHeating) heatingMs += s.ts - lastTs;
+    }
+    total++;
+    if (st.heating === Boolean(s.heating)) agree++;
+    if (s.heating) actualMs += lastTs != null && s.ts - lastTs < 15 * 60_000 ? s.ts - lastTs : 0;
+    if (st.heating && !open) open = { start: s.ts, maxDelta: st.delta ?? 0 };
+    if (open && st.delta != null) open.maxDelta = Math.max(open.maxDelta, st.delta);
+    if (!st.heating && open) { periods.push({ start: open.start, end: s.ts, maxDelta: open.maxDelta }); open = null; }
+    lastTs = s.ts; lastHeating = st.heating;
+  }
+  if (open) periods.push({ start: open.start, end: lastTs ?? to, maxDelta: open.maxDelta });
+  const deltas = hist.filter(s => s.ts >= from && s.tValve != null && s.tRoom != null).map(s => (s.tValve as number) - (s.tRoom as number));
+  const pct = (p: number) => { if (!deltas.length) return null; const v = [...deltas].sort((a, b) => a - b); return v[Math.min(v.length - 1, Math.floor(p * v.length))]; };
+  return {
+    room: room.id, name: room.name, samples: total,
+    periods, accensioni: periods.length, minutes: Math.round(heatingMs / 60_000),
+    currentMinutes: Math.round(actualMs / 60_000),
+    agreement: total ? Math.round((agree / total) * 100) : null,
+    // distribuzione della differenza valvola−stanza: aiuta a scegliere le soglie
+    delta: { min: pct(0), p50: pct(0.5), p90: pct(0.9), max: pct(0.999) },
   };
 }
