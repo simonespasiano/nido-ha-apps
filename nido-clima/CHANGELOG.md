@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.1
+
+- Se la valvola usa il **sensore esterno**, la temperatura del termosifone viene presa dalla temperatura interna del dispositivo (`device_temperature`) invece che dalla temperatura della valvola, che in quel caso ripete la stanza
+- Nuova opzione `fonte_termosifone` (auto / valvola / interna) e, per le stanze configurate a mano, `sensore_termosifone` per una sonda dedicata
+- Nomi in italiano per temperatura usata dalla valvola, temperatura interna e modalità installazione
+
 ## 0.4.0
 
 - Nuova scheda **Soglie**: tutte le soglie di rilevamento modificabili dall'interfaccia (differenza di accensione e spegnimento, salita e discesa della valvola, finestra aperta, minuti di calcolo)

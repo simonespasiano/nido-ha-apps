@@ -24,6 +24,18 @@ stanze:
     termostato: climate.clima_camera
 ```
 
+## Da dove arriva la temperatura del termosifone
+
+- Con la valvola sul **sensore interno**, si usa la temperatura che la valvola misura (`current_temperature`).
+- Con la valvola sul **sensore esterno** (ad esempio un'automazione che le invia la temperatura della stanza), quella temperatura
+  coincide con la stanza e non dice nulla del termosifone. In questo caso l'app usa la **temperatura interna del dispositivo**
+  (`sensor.<valvola>_device_temperature`), misurata nel corpo della valvola. È meno precisa (di solito a gradi interi) e si aggiorna più di rado,
+  ma segue il calore del termosifone.
+- Con `fonte_termosifone` scegli: `auto` (come sopra), `valvola` (sempre la temperatura della valvola) o `interna` (sempre quella interna).
+- Per una stanza configurata a mano puoi indicare `sensore_termosifone`, ad esempio una sonda appoggiata al termosifone: ha la precedenza su tutto.
+
+Sulla scheda della stanza, accanto a *Termosifone*, compare *(interna)* o *(sonda)* quando il valore non è quello della valvola.
+
 ## Come capisce che il termosifone scalda
 
 La valvola misura la temperatura **attaccata al termosifone**, il sensore quella della **stanza**. L'app combina tre segnali:

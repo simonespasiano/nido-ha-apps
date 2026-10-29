@@ -114,7 +114,7 @@ async function loadRooms() {
         <div class="big">${n1(s.tRoom)}<small>°C</small></div>
         <div class="fig">Umidità<b>${s.hRoom == null ? '–' : Math.round(s.hRoom) + ' %'}</b></div>
         <div class="fig">Obiettivo<b>${n1(s.setpoint)}°</b></div>
-        <div class="fig">Termosifone<b>${n1(s.tValve)}°</b></div>
+        <div class="fig" title="${v.room.valveTempSource === 'interna' ? 'Temperatura interna della valvola: la valvola usa il sensore esterno' : v.room.valveTempSource === 'manuale' ? 'Sensore indicato nella configurazione' : 'Temperatura misurata dalla valvola'}">Termosifone${v.room.valveTempSource === 'interna' ? ' <small>(interna)</small>' : v.room.valveTempSource === 'manuale' ? ' <small>(sonda)</small>' : ''}<b>${n1(s.tValve)}°</b></div>
       </div>
       <p class="reason">${esc(st?.reason ?? '')}${want}</p>
       <div class="chart-wrap" data-zoom="${esc(v.room.id)}" title="Tocca per ingrandire">${chart(histories[i])}<span class="zoom-hint">⤢ Ingrandisci</span></div>

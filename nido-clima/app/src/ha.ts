@@ -135,6 +135,8 @@ export class HASource implements DataSource {
       this.roomList = manual.map(r => ({
         id: slugify(r.nome), name: r.nome, valve: r.valvola, thermostat: r.termostato,
         tempSensor: r.sensore_temperatura, humSensor: r.sensore_umidita, source: 'manuale' as const,
+        valveTempSensor: r.sensore_termosifone,
+        ...this.valveExtras(r.valvola, entities, entityDevice),
       }));
     } else {
       const active = entities.filter((e: any) => !e.disabled_by && !e.entity_id.includes(OWN_PREFIX));
@@ -169,6 +171,7 @@ export class HASource implements DataSource {
         rooms.push({
           id: slugify(area.name), name: area.name, valve: valve.entity_id,
           thermostat: thermostat?.entity_id, tempSensor: temp, humSensor: hum, source: 'auto',
+          ...this.valveExtras(valve.entity_id, entities, entityDevice),
         });
       }
       // valvole e sensori senza area: la causa più frequente di "nessuna stanza"
@@ -188,6 +191,31 @@ export class HASource implements DataSource {
   }
 
   diagnosis: Diagnosis = { areas: [], unassigned: [], mode: 'auto' };
+
+  /** Entità utili dello stesso dispositivo della valvola: temperatura interna e modalità del sensore. */
+  private valveExtras(valveId: string, entities: any[], entityDevice: Map<string, string | null>) {
+    const dev = entityDevice.get(valveId);
+    if (!dev) return {};
+    const own = entities.filter((e: any) => entityDevice.get(e.entity_id) === dev && !e.disabled_by);
+    const deviceTemp = own.find((e: any) => e.entity_id.startsWith('sensor.') && /device_temperature$|internal_temperature$/.test(e.entity_id))?.entity_id;
+    const mode = own.find((e: any) => e.entity_id.startsWith('select.') && /_sensor$/.test(e.entity_id))?.entity_id;
+    return { valveDeviceTemp: deviceTemp as string | undefined, valveSensorMode: mode as string | undefined };
+  }
+
+  /**
+   * Temperatura "del termosifone". Con il sensore esterno la valvola riporta la temperatura della stanza,
+   * quindi si usa la sua temperatura interna (device_temperature), meno precisa ma misurata sul corpo valvola.
+   */
+  private valveTemperature(room: Room): number | null {
+    if (room.valveTempSensor) { room.valveTempSource = 'manuale'; return num(this.states.get(room.valveTempSensor)?.state); }
+    const local = num(this.states.get(room.valve)?.attributes.current_temperature);
+    const internal = room.valveDeviceTemp ? num(this.states.get(room.valveDeviceTemp)?.state) : null;
+    const external = room.valveSensorMode ? this.states.get(room.valveSensorMode)?.state === 'external' : false;
+    const pref = this.opts.fonte_termosifone;
+    const useInternal = internal != null && (pref === 'interna' || (pref === 'auto' && external));
+    room.valveTempSource = useInternal ? 'interna' : 'valvola';
+    return useInternal ? internal : local;
+  }
 
   rooms() { return this.roomList; }
 
@@ -240,7 +268,7 @@ export class HASource implements DataSource {
       ts: Date.now(),
       tRoom: num(this.states.get(room.tempSensor)?.state),
       hRoom: room.humSensor ? num(this.states.get(room.humSensor)?.state) : null,
-      tValve: num(valve?.attributes.current_temperature),
+      tValve: this.valveTemperature(room),
       setpoint: num(target?.attributes.temperature),
       mode: target?.state ?? null,
     };

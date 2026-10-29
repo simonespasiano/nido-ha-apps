@@ -6,6 +6,7 @@ export interface RoomOption {
   sensore_temperatura: string;
   sensore_umidita?: string;
   termostato?: string;
+  sensore_termosifone?: string;
 }
 
 export interface Options {
@@ -15,6 +16,7 @@ export interface Options {
   intervallo_secondi: number;
   conserva_giorni: number;
   pubblica_sensori: boolean;
+  fonte_termosifone: 'auto' | 'valvola' | 'interna';
 }
 
 const DEFAULTS: Options = {
@@ -24,6 +26,7 @@ const DEFAULTS: Options = {
   intervallo_secondi: 60,
   conserva_giorni: 120,
   pubblica_sensori: true,
+  fonte_termosifone: 'auto',
 };
 
 export const DEMO = process.env.DEMO === '1';
