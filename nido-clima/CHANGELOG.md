@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0
+
+- Nuovo stato **"Acqua calda · valvola chiusa"**: la valvola sta sul tubo di mandata e si scalda anche chiusa quando l'impianto è acceso. Se la stanza ha già raggiunto l'obiettivo, il caldo misurato non viene più contato come termosifone acceso
+- Lo stato dell'impianto centralizzato considera acceso anche questo caso
+- Nuova soglia *Valvola chiusa se la stanza è entro … dall'obiettivo* (predefinito 0,2 °C)
+
 ## 0.4.3
 
 - Quando la valvola usa il sensore della stanza come sensore esterno, la scheda lo indica ("Sensore stanza · usato dalla valvola") e non mostra più la temperatura della valvola, che sarebbe solo una copia ritardata dello stesso valore

@@ -37,6 +37,7 @@ export interface RoomStatus {
   reason: string;            // spiegazione leggibile
   window: boolean;           // sospetta finestra aperta
   requesting: boolean;       // la stanza vorrebbe calore
+  supplyHot?: boolean;       // acqua calda alla valvola ma valvola chiusa (stanza in temperatura)
   requestingSince: number | null;
 }
 

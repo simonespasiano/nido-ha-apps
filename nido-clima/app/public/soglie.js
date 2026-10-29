@@ -6,6 +6,7 @@
     { key: 'onSlope', label: 'Accensione anticipata se la valvola sale di almeno', help: 'Riconosce l\'accensione prima che la differenza arrivi alla soglia', unit: '°C/h', step: 0.5 },
     { key: 'offSlope', label: 'Spegnimento anticipato se la valvola scende di almeno', help: 'Riconosce lo spegnimento mentre il termosifone si sta raffreddando', unit: '°C/h', step: 0.5 },
     { key: 'windowSlope', label: 'Possibile finestra aperta se la stanza perde almeno', help: 'Con il termosifone acceso basta il 75% di questo valore', unit: '°C/h', step: 0.5 },
+    { key: 'satisfiedMargin', label: 'Valvola chiusa se la stanza è entro dall\'obiettivo', help: 'Se la stanza ha raggiunto l\'obiettivo, il caldo alla valvola è acqua in arrivo: non conta come termosifone acceso', unit: '°C', step: 0.1 },
     { key: 'valveWindowMin', label: 'Minuti su cui calcolare salite e discese', help: 'Più lungo = più stabile ma più lento a reagire', unit: 'min', step: 1 },
   ];
   let state = null;      // { global, rooms, source, limits, rooms_list }

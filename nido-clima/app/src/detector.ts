@@ -7,16 +7,17 @@ export interface DetectorConfig {
   offSlope: number;      // discesa della valvola che anticipa lo spegnimento (°C/ora, valore positivo)
   windowSlope: number;   // calo della stanza che fa sospettare una finestra aperta (°C/ora, valore positivo)
   valveWindowMin: number; // minuti su cui calcolare la pendenza della valvola
+  satisfiedMargin: number; // stanza entro questi °C dall'obiettivo = valvola chiusa, il caldo misurato è solo acqua in arrivo
 }
 
 export const DEFAULT_DETECTOR: DetectorConfig = {
-  onDelta: 2.5, offDelta: 1.2, onSlope: 4, offSlope: 3, windowSlope: 2, valveWindowMin: 20,
+  onDelta: 2.5, offDelta: 1.2, onSlope: 4, offSlope: 3, windowSlope: 2, valveWindowMin: 20, satisfiedMargin: 0.2,
 };
 
 /** Limiti ammessi per ogni parametro, usati per validare ciò che arriva dall'interfaccia. */
 export const DETECTOR_LIMITS: Record<keyof DetectorConfig, [number, number]> = {
   onDelta: [0.2, 20], offDelta: [0, 15], onSlope: [0.5, 60], offSlope: [0.5, 60],
-  windowSlope: [0.5, 20], valveWindowMin: [5, 90],
+  windowSlope: [0.5, 20], valveWindowMin: [5, 90], satisfiedMargin: [-3, 3],
 };
 
 export function sanitizeDetector(input: Partial<Record<keyof DetectorConfig, unknown>>, base: DetectorConfig): DetectorConfig {
@@ -107,6 +108,18 @@ export function detect(cfg: DetectorConfig, recent: Sample[], current: Sample, p
     else if (margin > 0.7 || concordant) confidence = 'media';
   }
 
+  // La valvola sta sul tubo di mandata: con l'impianto acceso si scalda anche a valvola chiusa.
+  // Se la stanza ha già raggiunto l'obiettivo (o la valvola è spenta) la valvola è chiusa:
+  // il calore misurato è acqua calda in arrivo, non un termosifone che scalda.
+  let supplyHot = false;
+  const satisfied = current.mode === 'off' ||
+    (current.setpoint != null && current.tRoom != null && current.tRoom >= current.setpoint - cfg.satisfiedMargin);
+  if (heating && satisfied) {
+    heating = false;
+    supplyHot = true;
+    reason = `Acqua calda alla valvola (+${fmt(delta ?? 0)} °C), ma la stanza è già in temperatura: valvola probabilmente chiusa`;
+  }
+
   // calo rapido della stanza: con il termosifone acceso la stanza dovrebbe salire, quindi è un segnale ancora più forte
   const window = sR != null && sR <= -(heating ? cfg.windowSlope * 0.75 : cfg.windowSlope);
   const requesting = current.mode !== 'off' && current.setpoint != null && current.tRoom != null
@@ -116,7 +129,7 @@ export function detect(cfg: DetectorConfig, recent: Sample[], current: Sample, p
     heating,
     since: heating !== wasHeating || !prev ? now : prev.since,
     delta, slopeValve: sV, slopeRoom: sR,
-    confidence, reason, window, requesting,
+    confidence, reason, window, requesting, supplyHot,
     requestingSince: requesting ? (prev?.requestingSince ?? now) : null,
   };
 }
@@ -129,11 +142,11 @@ export function detect(cfg: DetectorConfig, recent: Sample[], current: Sample, p
  */
 export function plantState(statuses: RoomStatus[], now: number, prev?: PlantStatus): PlantStatus {
   let state: PlantStatus['state'];
-  if (statuses.some(s => s.heating)) state = 'acceso';
+  if (statuses.some(s => s.heating || s.supplyHot)) state = 'acceso';
   else if (statuses.some(s => s.requestingSince != null && now - s.requestingSince > 30 * 60_000)) state = 'spento';
   else state = prev?.state === 'acceso' ? 'a_riposo' : (prev?.state ?? 'a_riposo');
   const labels = {
-    acceso: 'Impianto acceso: almeno un termosifone scalda',
+    acceso: 'Impianto acceso: almeno un termosifone scalda o arriva acqua calda alle valvole',
     spento: 'Impianto probabilmente spento: le valvole chiedono calore ma i termosifoni restano freddi',
     a_riposo: 'Nessuna stanza chiede calore: stato dell\'impianto non determinabile',
   } as const;
