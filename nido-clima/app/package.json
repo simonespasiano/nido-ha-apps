@@ -1,0 +1,17 @@
+{
+  "name": "nido-clima",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "App Home Assistant: stanze, valvole, rilevamento calorifero acceso, diario",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "demo": "tsc && DEMO=1 DATA_DIR=./.data PORT=8099 node dist/index.js"
+  },
+  "engines": { "node": ">=22.13" },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0"
+  }
+}

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NIDO Clima</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4v16M9.5 4v16M14 4v16M18.5 4v16M3 7h18M3 17h18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <div>
+        <h1>NIDO Clima</h1>
+        <p id="subtitle">Caricamento…</p>
+      </div>
+    </div>
+    <div id="plant" class="plant" hidden></div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="stanze" aria-selected="true">Stanze</button>
+    <button role="tab" data-tab="diario">Diario</button>
+    <button role="tab" data-tab="statistiche">Statistiche</button>
+    <button role="tab" data-tab="dispositivi">Dispositivi</button>
+  </nav>
+
+  <main>
+    <section id="tab-stanze" class="tab">
+      <div id="rooms" class="rooms"></div>
+      <p class="legend">
+        <span><i class="sw sw-room"></i>Stanza</span>
+        <span><i class="sw sw-valve"></i>Termosifone (valvola)</span>
+        <span><i class="sw sw-set"></i>Obiettivo</span>
+        <span><i class="sw sw-heat"></i>Calorifero caldo</span>
+      </p>
+    </section>
+
+    <section id="tab-diario" class="tab" hidden>
+      <div class="toolbar">
+        <label>Stanza
+          <select id="event-room"><option value="">Tutte</option></select>
+        </label>
+        <label>Tipo
+          <select id="event-kind">
+            <option value="">Tutti</option>
+            <option value="calorifero">Termosifoni</option>
+            <option value="impianto">Impianto</option>
+            <option value="finestra">Finestre</option>
+            <option value="obiettivo">Obiettivi e modalità</option>
+            <option value="sistema">Sistema</option>
+          </select>
+        </label>
+      </div>
+      <div id="events" class="events"></div>
+    </section>
+
+    <section id="tab-statistiche" class="tab" hidden>
+      <div id="stats"></div>
+      <p class="note">Le velocità sono la mediana dei periodi registrati negli ultimi 7 giorni. Più giorni di dati raccogli, più diventano affidabili: sono la base per il preriscaldamento intelligente.</p>
+    </section>
+
+    <section id="tab-dispositivi" class="tab" hidden>
+      <p class="note">Tutto ciò che in Home Assistant riguarda il clima, raggruppato per stanza. Le stanze vengono riconosciute da sole quando una valvola e un sensore di temperatura sono assegnati alla stessa area.</p>
+      <div id="entities"></div>
+    </section>
+  </main>
+
+  <footer id="footer"></footer>
+  <script src="app.js"></script>
+</body>
+</html>
