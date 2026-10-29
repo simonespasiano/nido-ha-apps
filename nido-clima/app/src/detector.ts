@@ -117,7 +117,7 @@ export function detect(cfg: DetectorConfig, recent: Sample[], current: Sample, p
   if (heating && satisfied) {
     heating = false;
     supplyHot = true;
-    reason = `Acqua calda alla valvola (+${fmt(delta ?? 0)} °C), ma la stanza è già in temperatura: valvola probabilmente chiusa`;
+    reason = `La stanza è già in temperatura: valvola chiusa, termosifone considerato freddo (valvola +${fmt(delta ?? 0)} °C sulla stanza)`;
   }
 
   // calo rapido della stanza: con il termosifone acceso la stanza dovrebbe salire, quindi è un segnale ancora più forte
@@ -142,11 +142,11 @@ export function detect(cfg: DetectorConfig, recent: Sample[], current: Sample, p
  */
 export function plantState(statuses: RoomStatus[], now: number, prev?: PlantStatus): PlantStatus {
   let state: PlantStatus['state'];
-  if (statuses.some(s => s.heating || s.supplyHot)) state = 'acceso';
+  if (statuses.some(s => s.heating)) state = 'acceso';
   else if (statuses.some(s => s.requestingSince != null && now - s.requestingSince > 30 * 60_000)) state = 'spento';
   else state = prev?.state === 'acceso' ? 'a_riposo' : (prev?.state ?? 'a_riposo');
   const labels = {
-    acceso: 'Impianto acceso: almeno un termosifone scalda o arriva acqua calda alle valvole',
+    acceso: 'Impianto acceso: almeno un termosifone scalda',
     spento: 'Impianto probabilmente spento: le valvole chiedono calore ma i termosifoni restano freddi',
     a_riposo: 'Nessuna stanza chiede calore: stato dell\'impianto non determinabile',
   } as const;

@@ -108,7 +108,7 @@ async function loadRooms() {
     const s = v.sample || {}, st = v.status;
     const heat = st?.heating;
     const badges = [
-      `<span class="badge ${heat ? 'on' : st?.supplyHot ? 'warm' : ''}">${heat ? '🔥 Termosifone caldo' : st?.supplyHot ? '♨ Acqua calda · valvola chiusa' : 'Termosifone freddo'}</span>`,
+      `<span class="badge ${heat ? 'on' : st?.supplyHot ? 'warm' : ''}">${heat ? '🔥 Termosifone caldo' : st?.supplyHot ? 'Valvola chiusa · stanza in temperatura' : 'Termosifone freddo'}</span>`,
       st?.window ? `<span class="badge win">Finestra aperta?</span>` : '',
     ].join('');
     const want = st?.requesting ? ' · chiede calore' : '';

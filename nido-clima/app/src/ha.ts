@@ -296,7 +296,7 @@ export class HASource implements DataSource {
       affidabilita: s.confidence,
       motivo: s.reason,
       finestra_sospetta: s.window,
-      acqua_calda_valvola_chiusa: s.supplyHot ?? false,
+      valvola_chiusa_in_temperatura: s.supplyHot ?? false,
       dal: new Date(s.since).toISOString(),
     });
   }

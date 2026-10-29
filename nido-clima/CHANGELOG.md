@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.1
+
+- Lo stato introdotto nella 0.5.0 diventa "Valvola chiusa · stanza in temperatura" e non fa più considerare acceso l'impianto: la verifica sul posto ha mostrato che la valvola può risultare più calda della stanza anche con tubo e termosifone freddi
+
 ## 0.5.0
 
 - Nuovo stato **"Acqua calda · valvola chiusa"**: la valvola sta sul tubo di mandata e si scalda anche chiusa quando l'impianto è acceso. Se la stanza ha già raggiunto l'obiettivo, il caldo misurato non viene più contato come termosifone acceso
