@@ -2,7 +2,9 @@
 (() => {
   const SERIES = [
     { key: 'tRoom', label: 'Stanza', color: 'var(--room)', unit: '°C', width: 2, on: true },
-    { key: 'tValve', label: 'Termosifone', color: 'var(--valve)', unit: '°C', width: 1.4, on: true },
+    { key: 'tValve', label: 'Termosifone (usata)', color: 'var(--valve)', unit: '°C', width: 1.6, on: true },
+    { key: 'tValveLocal', label: 'Valvola', color: '#b5838d', unit: '°C', width: 1.1, dash: '2 2', on: false },
+    { key: 'tValveInternal', label: 'Interna valvola', color: '#9a7b4f', unit: '°C', width: 1.1, step: true, on: false },
     { key: 'setpoint', label: 'Obiettivo', color: 'var(--set)', unit: '°C', width: 1.2, dash: '4 3', step: true, on: true },
     { key: 'hRoom', label: 'Umidità', color: '#7a9a5a', unit: '%', width: 1.2, axis: 'right', on: false },
   ];
@@ -163,16 +165,16 @@
       const d = z.data[i];
       while (evs.length && evs[evs.length - 1].ts >= d.ts) {
         const e = evs.pop();
-        rows.push(`<tr class="ev-row"><td>${fmtTs(e.ts, multiDay())}</td><td colspan="7">${EV_ICON[e.kind]} ${esc(e.message)}</td></tr>`);
+        rows.push(`<tr class="ev-row"><td>${fmtTs(e.ts, multiDay())}</td><td colspan="9">${EV_ICON[e.kind]} ${esc(e.message)}</td></tr>`);
       }
       const diff = d.tValve != null && d.tRoom != null ? d.tValve - d.tRoom : null;
       rows.push(`<tr data-ts="${d.ts}" class="${d.heating ? 'hot' : ''}">
         <td>${fmtTs(d.ts, multiDay())}</td><td>${n1(d.tRoom)}</td><td>${d.hRoom == null ? '–' : Math.round(d.hRoom)}</td>
-        <td>${n1(d.tValve)}</td><td>${diff == null ? '–' : (diff >= 0 ? '+' : '') + n1(diff)}</td>
+        <td>${n1(d.tValveLocal)}</td><td>${n1(d.tValveInternal)}</td><td><b>${n1(d.tValve)}</b></td><td>${diff == null ? '–' : (diff >= 0 ? '+' : '') + n1(diff)}</td>
         <td>${n1(d.setpoint)}</td><td>${esc(d.mode ?? '–')}</td><td>${d.heating ? '🔥 sì' : 'no'}</td></tr>`);
     }
-    $('#zoom-table').innerHTML = `<table><thead><tr><th>Ora</th><th>Stanza °C</th><th>Umidità %</th><th>Termosifone °C</th>
-      <th>Differenza</th><th>Obiettivo °C</th><th>Modalità</th><th>Caldo</th></tr></thead><tbody>${rows.join('') || '<tr><td colspan="8">Nessun dato</td></tr>'}</tbody></table>`;
+    $('#zoom-table').innerHTML = `<table><thead><tr><th>Ora</th><th>Stanza °C</th><th>Umidità %</th><th>Valvola °C</th><th>Interna °C</th><th>Termosifone (usata) °C</th>
+      <th>Differenza</th><th>Obiettivo °C</th><th>Modalità</th><th>Caldo</th></tr></thead><tbody>${rows.join('') || '<tr><td colspan="10">Nessun dato</td></tr>'}</tbody></table>`;
     if (z.pick != null) highlight(z.pick, false);
   }
 
@@ -297,10 +299,10 @@
 
   function exportCsv() {
     const num = v => v == null ? '' : String(Math.round(v * 100) / 100).replace('.', ',');
-    const lines = ['data;ora;stanza_c;umidita;termosifone_c;differenza;obiettivo_c;modalita;caldo'];
+    const lines = ['data;ora;stanza_c;umidita;valvola_c;interna_valvola_c;termosifone_usata_c;differenza;obiettivo_c;modalita;caldo'];
     for (const d of z.data) {
       const dt = new Date(d.ts);
-      lines.push([dt.toLocaleDateString('it-IT'), dt.toLocaleTimeString('it-IT'), num(d.tRoom), num(d.hRoom), num(d.tValve),
+      lines.push([dt.toLocaleDateString('it-IT'), dt.toLocaleTimeString('it-IT'), num(d.tRoom), num(d.hRoom), num(d.tValveLocal), num(d.tValveInternal), num(d.tValve),
         num(d.tValve != null && d.tRoom != null ? d.tValve - d.tRoom : null), num(d.setpoint), d.mode ?? '', d.heating ? 1 : 0].join(';'));
     }
     const blob = new Blob(['﻿' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });

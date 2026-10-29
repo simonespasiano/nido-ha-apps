@@ -23,18 +23,22 @@ export class Store {
       CREATE INDEX IF NOT EXISTS idx_events_ts ON events(ts);
       CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
     `);
+    // colonne aggiunte nella 0.4.2: temperatura della valvola e temperatura interna, separate
+    const cols = (this.db.prepare(`PRAGMA table_info(samples)`).all() as any[]).map(c => c.name);
+    if (!cols.includes('t_valve_local')) this.db.exec(`ALTER TABLE samples ADD COLUMN t_valve_local REAL`);
+    if (!cols.includes('t_valve_internal')) this.db.exec(`ALTER TABLE samples ADD COLUMN t_valve_internal REAL`);
   }
 
   insertSample(room: string, s: Sample) {
     this.db.prepare(
-      `INSERT INTO samples (ts, room, t_room, h_room, t_valve, setpoint, mode, heating)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(s.ts, room, s.tRoom, s.hRoom, s.tValve, s.setpoint, s.mode, s.heating ? 1 : 0);
+      `INSERT INTO samples (ts, room, t_room, h_room, t_valve, setpoint, mode, heating, t_valve_local, t_valve_internal)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(s.ts, room, s.tRoom, s.hRoom, s.tValve, s.setpoint, s.mode, s.heating ? 1 : 0, s.tValveLocal ?? null, s.tValveInternal ?? null);
   }
 
   history(room: string, since: number, maxPoints = 600, until = Number.MAX_SAFE_INTEGER): Sample[] {
     const rows = this.db.prepare(
-      `SELECT ts, t_room, h_room, t_valve, setpoint, mode, heating
+      `SELECT ts, t_room, h_room, t_valve, setpoint, mode, heating, t_valve_local, t_valve_internal
        FROM samples WHERE room = ? AND ts >= ? AND ts <= ? ORDER BY ts`
     ).all(room, since, until) as any[];
     const step = Math.max(1, Math.ceil(rows.length / maxPoints));
@@ -44,6 +48,7 @@ export class Store {
       out.push({
         ts: r.ts, tRoom: r.t_room, hRoom: r.h_room, tValve: r.t_valve,
         setpoint: r.setpoint, mode: r.mode, heating: r.heating === 1,
+        tValveLocal: r.t_valve_local, tValveInternal: r.t_valve_internal,
       });
     }
     return out;

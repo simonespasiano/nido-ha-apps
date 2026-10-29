@@ -18,7 +18,9 @@ export interface Sample {
   ts: number;               // epoch ms
   tRoom: number | null;     // temperatura ambiente
   hRoom: number | null;     // umidità
-  tValve: number | null;    // temperatura misurata dalla valvola
+  tValve: number | null;    // temperatura del termosifone usata per il rilevamento
+  tValveLocal?: number | null;    // temperatura riportata dalla valvola (local_temperature)
+  tValveInternal?: number | null; // temperatura interna del corpo valvola (device_temperature)
   setpoint: number | null;  // temperatura desiderata
   mode: string | null;      // heat / off / ...
   heating?: boolean;        // esito del rilevamento

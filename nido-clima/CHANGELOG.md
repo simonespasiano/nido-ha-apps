@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.2
+
+- Le schede delle stanze mostrano tutte e tre le temperature: **sensore della stanza**, **valvola** e **interna della valvola**; quella usata per capire se il termosifone scalda è evidenziata con ◉
+- Lo storico registra separatamente temperatura della valvola e temperatura interna: nel grafico ingrandito sono due serie attivabili, e compaiono come colonne nella tabella e nel CSV
+
 ## 0.4.1
 
 - Se la valvola usa il **sensore esterno**, la temperatura del termosifone viene presa dalla temperatura interna del dispositivo (`device_temperature`) invece che dalla temperatura della valvola, che in quel caso ripete la stanza

@@ -76,6 +76,7 @@ export class DemoSource implements DataSource {
   read(room: Room, at = Date.now()): Sample {
     const sim = this.sims.find(s => s.room.id === room.id)!;
     this.step(sim, at);
+    room.valveTempSource = 'valvola';
     const noise = () => (Math.random() - 0.5) * 0.1;
     const tValve = sim.tRoom + (sim.tRad - sim.tRoom) * 0.55 + noise();
     return {
@@ -83,6 +84,8 @@ export class DemoSource implements DataSource {
       tRoom: Math.round((sim.tRoom + noise()) * 100) / 100,
       hRoom: Math.round(52 + 6 * Math.sin(at / 7_200_000 + sim.kRad * 1000)),
       tValve: Math.round(tValve * 10) / 10,
+      tValveLocal: Math.round(tValve * 10) / 10,
+      tValveInternal: Math.round(tValve + 0.4),
       setpoint: setpoint(sim, at),
       mode: sim.mode,
     };

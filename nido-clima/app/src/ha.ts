@@ -269,6 +269,8 @@ export class HASource implements DataSource {
       tRoom: num(this.states.get(room.tempSensor)?.state),
       hRoom: room.humSensor ? num(this.states.get(room.humSensor)?.state) : null,
       tValve: this.valveTemperature(room),
+      tValveLocal: num(valve?.attributes.current_temperature),
+      tValveInternal: room.valveDeviceTemp ? num(this.states.get(room.valveDeviceTemp)?.state) : null,
       setpoint: num(target?.attributes.temperature),
       mode: target?.state ?? null,
     };

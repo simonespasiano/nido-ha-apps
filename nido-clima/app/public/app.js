@@ -71,6 +71,10 @@ function chart(hist) {
 }
 
 /* ---------- stanze ---------- */
+// valore di temperatura della scheda; quello usato per capire se il termosifone scalda è evidenziato
+const tempFig = (label, value, used, help) =>
+  `<div class="fig ${used ? 'used' : ''}" title="${esc(help)}${used ? ' · usata per capire se il termosifone scalda' : ''}">${label}<b>${n1(value)}°${used ? ' <i class="det" aria-label="usata per il rilevamento">◉</i>' : ''}</b></div>`;
+
 async function loadRooms() {
   overview = await api('api/overview');
   overview.rooms.forEach(v => roomNames[v.room.id] = v.room.name);
@@ -111,10 +115,14 @@ async function loadRooms() {
     return `<article class="card">
       <div class="card-head"><h2>${esc(v.room.name)}</h2><div>${badges}</div></div>
       <div class="figures">
-        <div class="big">${n1(s.tRoom)}<small>°C</small></div>
+        <div class="big" title="Sensore della stanza"><span>${n1(s.tRoom)}<small>°C</small></span><span class="big-lbl">Sensore stanza</span></div>
+        <div class="fig-grid">
         <div class="fig">Umidità<b>${s.hRoom == null ? '–' : Math.round(s.hRoom) + ' %'}</b></div>
         <div class="fig">Obiettivo<b>${n1(s.setpoint)}°</b></div>
-        <div class="fig" title="${v.room.valveTempSource === 'interna' ? 'Temperatura interna della valvola: la valvola usa il sensore esterno' : v.room.valveTempSource === 'manuale' ? 'Sensore indicato nella configurazione' : 'Temperatura misurata dalla valvola'}">Termosifone${v.room.valveTempSource === 'interna' ? ' <small>(interna)</small>' : v.room.valveTempSource === 'manuale' ? ' <small>(sonda)</small>' : ''}<b>${n1(s.tValve)}°</b></div>
+        ${tempFig('Valvola', s.tValveLocal ?? (v.room.valveTempSource === 'valvola' ? s.tValve : null), v.room.valveTempSource === 'valvola', 'Temperatura riportata dalla valvola. Con il sensore esterno coincide con la stanza')}
+        ${s.tValveInternal != null || v.room.valveTempSource === 'interna' ? tempFig('Interna valvola', s.tValveInternal ?? s.tValve, v.room.valveTempSource === 'interna', 'Temperatura interna del corpo valvola, vicino al termosifone') : ''}
+        ${v.room.valveTempSource === 'manuale' ? tempFig('Sonda', s.tValve, true, 'Sonda indicata nella configurazione') : ''}
+        </div>
       </div>
       <p class="reason">${esc(st?.reason ?? '')}${want}</p>
       <div class="chart-wrap" data-zoom="${esc(v.room.id)}" title="Tocca per ingrandire">${chart(histories[i])}<span class="zoom-hint">⤢ Ingrandisci</span></div>
