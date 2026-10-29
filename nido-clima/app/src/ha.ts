@@ -211,6 +211,7 @@ export class HASource implements DataSource {
     const local = num(this.states.get(room.valve)?.attributes.current_temperature);
     const internal = room.valveDeviceTemp ? num(this.states.get(room.valveDeviceTemp)?.state) : null;
     const external = room.valveSensorMode ? this.states.get(room.valveSensorMode)?.state === 'external' : false;
+    room.valveExternal = external;
     const pref = this.opts.fonte_termosifone;
     const useInternal = internal != null && (pref === 'interna' || (pref === 'auto' && external));
     room.valveTempSource = useInternal ? 'interna' : 'valvola';

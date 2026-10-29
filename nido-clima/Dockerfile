@@ -15,4 +15,4 @@ COPY --from=build /build/dist ./dist
 COPY app/public ./public
 CMD ["node", "--disable-warning=ExperimentalWarning", "dist/index.js"]
 
-LABEL io.hass.type="addon" io.hass.version="0.4.2"
+LABEL io.hass.type="addon" io.hass.version="0.4.3"

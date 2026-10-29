@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.3
+
+- Quando la valvola usa il sensore della stanza come sensore esterno, la scheda lo indica ("Sensore stanza · usato dalla valvola") e non mostra più la temperatura della valvola, che sarebbe solo una copia ritardata dello stesso valore
+
 ## 0.4.2
 
 - Le schede delle stanze mostrano tutte e tre le temperature: **sensore della stanza**, **valvola** e **interna della valvola**; quella usata per capire se il termosifone scalda è evidenziata con ◉

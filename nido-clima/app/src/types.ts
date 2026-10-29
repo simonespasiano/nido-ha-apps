@@ -11,6 +11,7 @@ export interface Room {
   valveSensorMode?: string; // select.* che indica se la valvola usa il sensore interno o esterno
   valveTempSensor?: string; // sensore indicato a mano per la temperatura del termosifone
   valveTempSource?: 'valvola' | 'interna' | 'manuale'; // da dove arriva, aggiornato a ogni lettura
+  valveExternal?: boolean; // la valvola usa come sensore il sensore della stanza
   source: 'auto' | 'manuale' | 'demo';
 }
 

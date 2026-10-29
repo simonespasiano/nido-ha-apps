@@ -115,11 +115,11 @@ async function loadRooms() {
     return `<article class="card">
       <div class="card-head"><h2>${esc(v.room.name)}</h2><div>${badges}</div></div>
       <div class="figures">
-        <div class="big" title="Sensore della stanza"><span>${n1(s.tRoom)}<small>°C</small></span><span class="big-lbl">Sensore stanza</span></div>
+        <div class="big" title="Sensore della stanza"><span>${n1(s.tRoom)}<small>°C</small></span><span class="big-lbl">${v.room.valveExternal ? 'Sensore stanza · usato dalla valvola' : 'Sensore stanza'}</span></div>
         <div class="fig-grid">
         <div class="fig">Umidità<b>${s.hRoom == null ? '–' : Math.round(s.hRoom) + ' %'}</b></div>
         <div class="fig">Obiettivo<b>${n1(s.setpoint)}°</b></div>
-        ${tempFig('Valvola', s.tValveLocal ?? (v.room.valveTempSource === 'valvola' ? s.tValve : null), v.room.valveTempSource === 'valvola', 'Temperatura riportata dalla valvola. Con il sensore esterno coincide con la stanza')}
+        ${v.room.valveExternal ? '' : tempFig('Valvola', s.tValveLocal ?? (v.room.valveTempSource === 'valvola' ? s.tValve : null), v.room.valveTempSource === 'valvola', 'Temperatura misurata dalla valvola')}
         ${s.tValveInternal != null || v.room.valveTempSource === 'interna' ? tempFig('Interna valvola', s.tValveInternal ?? s.tValve, v.room.valveTempSource === 'interna', 'Temperatura interna del corpo valvola, vicino al termosifone') : ''}
         ${v.room.valveTempSource === 'manuale' ? tempFig('Sonda', s.tValve, true, 'Sonda indicata nella configurazione') : ''}
         </div>
