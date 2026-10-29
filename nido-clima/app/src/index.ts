@@ -10,7 +10,7 @@ import { HttpError, MiniServer } from './http.js';
 import type { DataSource } from './types.js';
 import type { Action } from './controls.js';
 
-const VERSION = '0.5.1';
+const VERSION = '0.5.2';
 const here = dirname(fileURLToPath(import.meta.url));
 
 async function main() {
@@ -123,6 +123,19 @@ async function main() {
         return simulate(store, r, cfg, from, to);
       });
     } catch (err) { throw new HttpError(400, err instanceof Error ? err.message : String(err)); }
+  });
+
+  app.get('/api/data', () => store.counts());
+
+  app.post('/api/data/reset', (_p, _q, req, body) => {
+    if (body?.confirm !== 'CANCELLA') throw new HttpError(400, 'Conferma mancante');
+    const withSettings = body?.settings === true;
+    store.reset(withSettings);
+    engine.clearMemory();
+    if (withSettings) engine.resetThresholds();
+    const who = req.headers['x-remote-user-display-name'] ?? req.headers['x-remote-user-name'];
+    engine.log(`Storico e diario azzerati${withSettings ? ', soglie riportate ai valori della configurazione' : ''}${who ? ` — da ${who}` : ''}`);
+    return store.counts();
   });
 
   app.get('/api/settings', () => ({

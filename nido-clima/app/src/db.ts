@@ -112,6 +112,18 @@ export class Store {
     this.db.prepare(`DELETE FROM settings WHERE key = ?`).run(key);
   }
 
+  /** Cancella storico e diario. Le impostazioni (soglie) restano, salvo richiesta. */
+  reset(withSettings = false) {
+    this.db.exec(`DELETE FROM samples; DELETE FROM events;${withSettings ? ' DELETE FROM settings;' : ''}`);
+    this.db.exec('VACUUM');
+  }
+
+  counts() {
+    const s = this.db.prepare(`SELECT COUNT(*) AS n, MIN(ts) AS first FROM samples`).get() as any;
+    const e = this.db.prepare(`SELECT COUNT(*) AS n FROM events`).get() as any;
+    return { samples: s.n as number, events: e.n as number, since: (s.first as number | null) ?? null };
+  }
+
   isEmpty(): boolean {
     const r = this.db.prepare(`SELECT COUNT(*) AS n FROM samples`).get() as any;
     return r.n === 0;

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.2
+
+- Scheda **Soglie** → **Dati raccolti**: mostra quante letture ed eventi ci sono e permette di **cancellare storico e diario** per ripartire da zero, mantenendo (o, a scelta, azzerando) le soglie salvate
+
 ## 0.5.1
 
 - Lo stato introdotto nella 0.5.0 diventa "Valvola chiusa · stanza in temperatura" e non fa più considerare acceso l'impianto: la verifica sul posto ha mostrato che la valvola può risultare più calda della stanza anche con tubo e termosifone freddi

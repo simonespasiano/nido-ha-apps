@@ -16,7 +16,26 @@
   const toNum = v => v === '' || v == null ? null : Number(String(v).replace(',', '.'));
   const show = v => v == null ? '' : String(v).replace('.', ',');
 
+  async function loadData() {
+    const d = await api('api/data');
+    $('#data-info').textContent = d.samples
+      ? `${d.samples.toLocaleString('it-IT')} letture e ${d.events.toLocaleString('it-IT')} eventi, dal ${new Date(d.since).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}.`
+      : 'Nessuna lettura registrata.';
+  }
+
+  $('#data-reset').addEventListener('click', async () => {
+    const all = $('#data-settings').checked;
+    if (!confirm(`Cancellare tutte le letture e il diario${all ? ' e le soglie salvate' : ''}? Non si può annullare.`)) return;
+    try {
+      await post('api/data/reset', { confirm: 'CANCELLA', settings: all });
+      toast('Dati cancellati: la raccolta riparte da adesso');
+      $('#data-settings').checked = false;
+      await window.loadThresholds();
+    } catch (e) { toast(e.message, true); }
+  });
+
   window.loadThresholds = async () => {
+    loadData().catch(() => {});
     state = await api('api/thresholds');
     draft = { global: { ...state.global }, rooms: JSON.parse(JSON.stringify(state.rooms)) };
     const sel = $('#th-scope');

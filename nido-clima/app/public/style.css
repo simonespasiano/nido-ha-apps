@@ -250,6 +250,8 @@ label.inline { display: flex; align-items: center; gap: 8px; font-size: 13px; co
 .th-row input.over { border-color: var(--valve); }
 .th-row .unit { color: var(--muted); font-size: 13px; width: 42px; }
 .th-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
+.btn.danger { border-color: #c0392b; color: #c0392b; }
+.btn.danger:hover { background: #c0392b; color: #fff; }
 .btn.primary { background: var(--valve); border-color: var(--valve); color: #fff; }
 .th-graph { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: var(--bg); margin-top: 4px; min-width: 120px; }
 #th-result td { white-space: nowrap; }

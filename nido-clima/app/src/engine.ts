@@ -43,6 +43,12 @@ export class Engine {
       : { global: { ...defaults }, rooms: {}, source: 'opzioni' };
   }
 
+  /** Azzera lo stato in memoria (dopo la cancellazione dello storico). */
+  clearMemory() {
+    this.buffers.clear(); this.statuses.clear(); this.lastSamples.clear(); this.lastWindowEvent.clear();
+    this.plant = undefined;
+  }
+
   cfgFor(roomId: string): DetectorConfig {
     return { ...this.thresholds.global, ...(this.thresholds.rooms[roomId] ?? {}) };
   }
