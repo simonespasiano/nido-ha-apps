@@ -9,7 +9,7 @@ Repository di app (ex componenti aggiuntivi) per Home Assistant.
 ## Installazione
 
 1. In Home Assistant: **Impostazioni → App → Store → ⋮ → Repository**
-2. Aggiungi l'indirizzo di questo repository, ad esempio `https://github.com/TUO_UTENTE/nido-ha-apps`
+2. Aggiungi l'indirizzo di questo repository, ad esempio `https://github.com/simonespasiano/nido-ha-apps`
 3. **⋮ → Verifica aggiornamenti**, poi cerca **NIDO Clima** → Installa → Avvia
 4. Attiva **Mostra nella barra laterale**
 

@@ -2,7 +2,7 @@ name: NIDO Clima
 version: "0.1.0"
 slug: nido_clima
 description: Stanze, valvole e sensori in chiaro, rilevamento del calorifero acceso e diario di ciò che accade
-url: https://github.com/TUO_UTENTE/nido-ha-apps
+url: https://github.com/simonespasiano/nido-ha-apps
 arch:
   - aarch64
   - amd64
