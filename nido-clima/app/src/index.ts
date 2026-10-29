@@ -9,7 +9,7 @@ import { HttpError, MiniServer } from './http.js';
 import type { DataSource } from './types.js';
 import type { Action } from './controls.js';
 
-const VERSION = '0.2.0';
+const VERSION = '0.3.0';
 const here = dirname(fileURLToPath(import.meta.url));
 
 async function main() {
@@ -57,12 +57,20 @@ async function main() {
 
   app.get('/api/rooms/:id/history', (p, q) => {
     const room = findRoom(p.id);
-    const hours = Math.min(24 * 30, Math.max(1, Number(q.get('hours') ?? 24)));
-    return store.history(room.id, Date.now() - hours * 3_600_000, 500);
+    // intervallo esplicito (from/to in ms) per lo zoom, altrimenti le ultime N ore
+    const max = Math.min(5000, Math.max(50, Number(q.get('max') ?? 500)));
+    if (q.get('from')) {
+      const from = Number(q.get('from')), to = Number(q.get('to') ?? Date.now());
+      if (!Number.isFinite(from) || !Number.isFinite(to) || to <= from) throw new HttpError(400, 'Intervallo non valido');
+      return store.history(room.id, from, max, to);
+    }
+    const hours = Math.min(24 * 400, Math.max(1, Number(q.get('hours') ?? 24)));
+    return store.history(room.id, Date.now() - hours * 3_600_000, max);
   });
 
   app.get('/api/events', (_p, q) =>
-    store.events(Math.min(1000, Number(q.get('limit') ?? 200)), q.get('room') || undefined));
+    store.events(Math.min(1000, Number(q.get('limit') ?? 200)), q.get('room') || undefined,
+      Number(q.get('from') ?? 0) || 0, Number(q.get('to') ?? 0) || Number.MAX_SAFE_INTEGER));
 
   app.get('/api/stats', () => src.rooms().map(r => roomStats(store, r)));
 

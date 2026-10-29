@@ -31,11 +31,11 @@ export class Store {
     ).run(s.ts, room, s.tRoom, s.hRoom, s.tValve, s.setpoint, s.mode, s.heating ? 1 : 0);
   }
 
-  history(room: string, since: number, maxPoints = 600): Sample[] {
+  history(room: string, since: number, maxPoints = 600, until = Number.MAX_SAFE_INTEGER): Sample[] {
     const rows = this.db.prepare(
       `SELECT ts, t_room, h_room, t_valve, setpoint, mode, heating
-       FROM samples WHERE room = ? AND ts >= ? ORDER BY ts`
-    ).all(room, since) as any[];
+       FROM samples WHERE room = ? AND ts >= ? AND ts <= ? ORDER BY ts`
+    ).all(room, since, until) as any[];
     const step = Math.max(1, Math.ceil(rows.length / maxPoints));
     const out: Sample[] = [];
     for (let i = 0; i < rows.length; i += step) {
@@ -53,11 +53,11 @@ export class Store {
       .run(e.ts, e.room, e.kind, e.message);
   }
 
-  events(limit = 200, room?: string, since = 0): AppEvent[] {
+  events(limit = 200, room?: string, since = 0, until = Number.MAX_SAFE_INTEGER): AppEvent[] {
     const sql = room
-      ? `SELECT * FROM events WHERE room = ? AND ts >= ? ORDER BY ts DESC LIMIT ?`
-      : `SELECT * FROM events WHERE ts >= ? ORDER BY ts DESC LIMIT ?`;
-    const args = room ? [room, since, limit] : [since, limit];
+      ? `SELECT * FROM events WHERE room = ? AND ts >= ? AND ts <= ? ORDER BY ts DESC LIMIT ?`
+      : `SELECT * FROM events WHERE ts >= ? AND ts <= ? ORDER BY ts DESC LIMIT ?`;
+    const args = room ? [room, since, until, limit] : [since, until, limit];
     return this.db.prepare(sql).all(...args) as unknown as AppEvent[];
   }
 

@@ -74,9 +74,34 @@
     </form>
     <div id="manage-body"></div>
   </dialog>
+  <dialog id="zoom" class="wide" aria-labelledby="zoom-title">
+    <form method="dialog" class="dlg-head">
+      <div><h2 id="zoom-title">Grafico</h2><p id="zoom-sub"></p></div>
+      <button class="icon-btn" aria-label="Chiudi">✕</button>
+    </form>
+    <div class="zoom-body">
+      <div class="zoom-bar">
+        <div class="seg" id="zoom-ranges">
+          <button data-hours="6">6 h</button><button data-hours="24">24 h</button><button data-hours="72">3 gg</button><button data-hours="168">7 gg</button><button data-hours="720">30 gg</button>
+        </div>
+        <div class="zoom-tools">
+          <button class="btn small" data-pan="-1" aria-label="Indietro">◀</button>
+          <button class="btn small" data-zoomout aria-label="Allarga">−</button>
+          <button class="btn small" data-pan="1" aria-label="Avanti">▶</button>
+          <button class="btn small" data-reset>Ripristina</button>
+          <button class="btn small" data-csv>Esporta CSV</button>
+        </div>
+      </div>
+      <div class="zoom-series" id="zoom-series"></div>
+      <div id="zoom-chart" class="zoom-chart"></div>
+      <p class="note hint">Trascina sul grafico per ingrandire un periodo · rotellina per zoom · doppio clic per tornare indietro · clic su un punto per vederlo in tabella</p>
+      <div class="zoom-table scroll" id="zoom-table"></div>
+    </div>
+  </dialog>
   <div id="toast" role="status" hidden></div>
 
   <footer id="footer"></footer>
   <script src="app.js"></script>
+  <script src="zoom.js"></script>
 </body>
 </html>

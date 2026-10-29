@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0
+
+- Grafico ingrandito: tocca il grafico di una stanza per aprirlo a tutta pagina
+- Intervalli rapidi (6 h, 24 h, 3, 7, 30 giorni), zoom trascinando o con la rotellina, spostamento avanti/indietro, doppio clic per tornare all'intervallo iniziale
+- Valori al passaggio del mouse; clic su un punto per evidenziarlo nella tabella dei dati puntuali (e viceversa)
+- Eventi del diario mostrati sul grafico e intercalati nella tabella
+- Serie attivabili (stanza, termosifone, obiettivo, umidità) ed esportazione CSV del periodo visibile
+
 ## 0.2.0
 
 - Pannello **Gestisci** per ogni stanza: temperatura desiderata, modalità (riscaldamento/spento), preset di Versatile Thermostat

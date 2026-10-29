@@ -117,7 +117,7 @@ async function loadRooms() {
         <div class="fig">Termosifone<b>${n1(s.tValve)}°</b></div>
       </div>
       <p class="reason">${esc(st?.reason ?? '')}${want}</p>
-      ${chart(histories[i])}
+      <div class="chart-wrap" data-zoom="${esc(v.room.id)}" title="Tocca per ingrandire">${chart(histories[i])}<span class="zoom-hint">⤢ Ingrandisci</span></div>
       <div class="meta"><span>Caldo oggi: <b>${dur(v.todayMinutes)}</b></span><span>${st ? (heat ? 'acceso ' : 'spento ') + ago(st.since) : ''} · affidabilità ${st?.confidence ?? '–'}</span></div>
       <div class="card-actions">
         ${s.mode === 'off' ? '<span class="badge">Riscaldamento spento</span>' : '<span></span>'}
