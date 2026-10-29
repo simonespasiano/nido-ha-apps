@@ -1,5 +1,6 @@
 import type { AreaDiagnosis, DataSource, Diagnosis, EntityInfo, PlantStatus, Room, RoomStatus, Sample } from './types.js';
 import type { Options } from './config.js';
+import { buildCall, describeClimate, describeControl, type Action, type DeviceControl, type RoomControls } from './controls.js';
 
 interface HAState {
   entity_id: string;
@@ -29,6 +30,8 @@ export class HASource implements DataSource {
   private areaNames = new Map<string, string>();
   private entityArea = new Map<string, string | null>();
   private entityPlatform = new Map<string, string>();
+  private registry: any[] = [];
+  private deviceInfo = new Map<string, { name: string | null }>();
   private roomList: Room[] = [];
   private readonly wsUrl: string;
   private readonly restUrl: string;
@@ -119,6 +122,8 @@ export class HASource implements DataSource {
     this.areaNames = new Map(areas.map((a: any) => [a.area_id, a.name]));
     const deviceArea = new Map<string, string | null>(devices.map((d: any) => [d.id, d.area_id]));
     const entityDevice = new Map<string, string | null>();
+    this.registry = entities;
+    this.deviceInfo = new Map(devices.map((d: any) => [d.id, { name: d.name_by_user ?? d.name ?? null }]));
     for (const e of entities) {
       this.entityArea.set(e.entity_id, e.area_id ?? (e.device_id ? deviceArea.get(e.device_id) ?? null : null));
       this.entityPlatform.set(e.entity_id, e.platform);
@@ -185,6 +190,47 @@ export class HASource implements DataSource {
   diagnosis: Diagnosis = { areas: [], unassigned: [], mode: 'auto' };
 
   rooms() { return this.roomList; }
+
+  controls(room: Room): RoomControls {
+    const st = (id?: string) => (id ? this.states.get(id) : undefined);
+    const valveState = st(room.valve);
+    const thermoState = st(room.thermostat);
+    const valveEntry = this.registry.find(e => e.entity_id === room.valve);
+    const deviceId: string | null = valveEntry?.device_id ?? null;
+    const deviceName = deviceId ? this.deviceInfo.get(deviceId)?.name ?? null : null;
+    const deviceSlug = deviceName ? slugify(deviceName) : (room.valve.split('.')[1] ?? null);
+    const device: DeviceControl[] = [];
+    if (deviceId) {
+      for (const e of this.registry) {
+        if (e.device_id !== deviceId || e.disabled_by || e.entity_id === room.valve) continue;
+        const s = this.states.get(e.entity_id);
+        if (!s) continue;
+        const c = describeControl(e.entity_id, s.attributes.friendly_name ?? e.entity_id, deviceName, deviceSlug,
+          s.state, s.attributes, e.entity_category ?? null);
+        if (c) device.push(c);
+      }
+    }
+    const order = { principale: 0, configurazione: 1, diagnostica: 2 } as const;
+    device.sort((a, b) => order[a.category] - order[b.category] || a.name.localeCompare(b.name));
+    const val = (k: string) => num(device.find(d => d.key === k)?.state);
+    return {
+      thermostat: thermoState && room.thermostat ? describeClimate(room.thermostat, thermoState.attributes, thermoState.state) : null,
+      valve: valveState ? describeClimate(room.valve, valveState.attributes, valveState.state) : null,
+      device,
+      battery: val('battery'),
+      linkquality: val('linkquality'),
+      deviceName,
+    };
+  }
+
+  async act(room: Room, a: Action): Promise<string> {
+    const call = buildCall(this.controls(room), a);
+    await this.call({
+      type: 'call_service', domain: call.domain, service: call.service,
+      service_data: call.data, target: { entity_id: call.entity_id },
+    });
+    return call.description;
+  }
 
   read(room: Room): Sample {
     const valve = this.states.get(room.valve);

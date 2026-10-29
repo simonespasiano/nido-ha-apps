@@ -40,6 +40,17 @@ Con il riscaldamento **centralizzato** l'app deduce anche lo stato dell'impianto
 - una stanza chiede calore da oltre 30 minuti ma nessun termosifone si scalda → **impianto probabilmente spento**;
 - nessuna richiesta → **a riposo**, cioè non determinabile.
 
+## Gestire valvole e termostati
+
+Il pulsante **Gestisci** su ogni stanza apre un pannello con:
+
+- **temperatura desiderata**, regolabile con − e +: se c'è un termostato virtuale (Versatile Thermostat) il comando va a lui, altrimenti direttamente alla valvola;
+- **modalità** e **preset**, quando il termostato li offre;
+- tutte le **funzioni del dispositivo valvola** esposte da Zigbee2MQTT (blocco bambini, rilevamento finestra, sensore usato, calibrazione…), divise in funzioni, configurazione e diagnostica, con batteria e qualità del segnale.
+
+L'app può comandare **solo** le entità che appartengono alla valvola della stanza, e controlla che i valori siano nei limiti ammessi.
+Ogni comando viene registrato nel **Diario** con il nome dell'utente di Home Assistant che l'ha dato.
+
 ## Sensori creati in Home Assistant
 
 Con `pubblica_sensori: true` l'app crea, e aggiorna a ogni ciclo:

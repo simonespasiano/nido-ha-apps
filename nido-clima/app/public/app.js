@@ -119,6 +119,10 @@ async function loadRooms() {
       <p class="reason">${esc(st?.reason ?? '')}${want}</p>
       ${chart(histories[i])}
       <div class="meta"><span>Caldo oggi: <b>${dur(v.todayMinutes)}</b></span><span>${st ? (heat ? 'acceso ' : 'spento ') + ago(st.since) : ''} · affidabilità ${st?.confidence ?? '–'}</span></div>
+      <div class="card-actions">
+        ${s.mode === 'off' ? '<span class="badge">Riscaldamento spento</span>' : '<span></span>'}
+        <button class="btn" data-manage="${esc(v.room.id)}">Gestisci</button>
+      </div>
     </article>`;
   }).join('');
   fillRoomSelect();
@@ -132,7 +136,7 @@ function fillRoomSelect() {
 
 /* ---------- diario ---------- */
 const ICON = {
-  calorifero_on: '🔥', calorifero_off: '❄️', impianto_on: '🏢', impianto_off: '⏸️',
+  calorifero_on: '🔥', calorifero_off: '❄️', comando: '👆', impianto_on: '🏢', impianto_off: '⏸️',
   finestra: '🪟', obiettivo: '🎯', modalita: '⚙️', sistema: 'ℹ️',
 };
 async function loadEvents() {
@@ -179,6 +183,128 @@ async function loadEntities() {
       <span class="val">${esc(e.state)}${e.unit ? ' ' + esc(e.unit) : ''}</span><span class="id">${esc(e.entity_id)}</span></div>`).join('')}
   </div>`).join('');
 }
+
+/* ---------- gestione valvola ---------- */
+const PRESET_IT = { none: 'Nessuno', eco: 'Eco', comfort: 'Comfort', boost: 'Boost', away: 'Fuori casa', frost: 'Antigelo', sleep: 'Notte', home: 'A casa', activity: 'Attività', manual: 'Manuale', schedule: 'Programma' };
+const MODE_IT = { heat: 'Riscaldamento', off: 'Spento', auto: 'Automatico', cool: 'Raffrescamento', heat_cool: 'Caldo/freddo' };
+let managing = null, pendingTemp = null, tempTimer = null;
+
+function toast(msg, isError = false) {
+  const t = $('#toast');
+  t.textContent = msg; t.className = isError ? 'error' : ''; t.hidden = false;
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, 3500);
+}
+
+async function send(action) {
+  try {
+    const r = await fetch(`api/rooms/${managing}/action`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(action),
+    });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || r.status);
+    toast(j.message);
+    setTimeout(() => { renderManage(); loadRooms().catch(() => {}); }, 1500);
+  } catch (e) { toast(`Comando non eseguito: ${e.message}`, true); renderManage(); }
+}
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-manage]');
+  if (b) { managing = b.dataset.manage; renderManage(true); }
+});
+
+function batteryText(v) {
+  if (v == null) return '';
+  const cls = v < 20 ? 'low' : v < 40 ? 'mid' : '';
+  return `<span class="pill ${cls}">🔋 ${Math.round(v)} %</span>`;
+}
+
+async function renderManage(open = false) {
+  const dlg = $('#manage');
+  if (open) { $('#manage-body').innerHTML = '<p class="note">Caricamento…</p>'; dlg.showModal(); }
+  let c;
+  try { c = await api(`api/rooms/${managing}/controls`); }
+  catch (e) { $('#manage-body').innerHTML = `<div class="empty">Impossibile leggere i comandi (${esc(e.message)}).</div>`; return; }
+  const t = c.thermostat ?? c.valve;
+  $('#manage-title').textContent = roomNames[managing] ?? managing;
+  $('#manage-sub').innerHTML = [c.deviceName ? esc(c.deviceName) : '', batteryText(c.battery),
+    c.linkquality != null ? `<span class="pill">📶 ${c.linkquality}</span>` : ''].filter(Boolean).join(' ');
+
+  let html = '';
+  if (t) {
+    const sp = pendingTemp ?? t.setpoint;
+    html += `<section class="m-sec">
+      <h3>Temperatura desiderata</h3>
+      <div class="stepper">
+        <button class="btn round" data-step="-1" aria-label="Diminuisci">−</button>
+        <div class="sp"><b id="sp-val">${n1(sp)}</b><small>°C</small></div>
+        <button class="btn round" data-step="1" aria-label="Aumenta">+</button>
+      </div>
+      <p class="note center">Ora in stanza ${n1(t.current)} °C · regolata da <b>${esc(t.name)}</b>${c.thermostat ? ' (termostato virtuale)' : ''}</p>
+      <h3>Modalità</h3>
+      <div class="seg">${t.modes.map(m => `<button class="${m === t.mode ? 'on' : ''}" data-mode="${esc(m)}">${esc(MODE_IT[m] ?? m)}</button>`).join('')}</div>
+      ${t.presets.length ? `<h3>Preset</h3><div class="chips">${t.presets.map(p => `<button class="chip ${p === t.preset ? 'on' : ''}" data-preset="${esc(p)}">${esc(PRESET_IT[p] ?? p)}</button>`).join('')}</div>` : ''}
+    </section>`;
+  }
+  if (c.thermostat && c.valve) {
+    html += `<section class="m-sec"><h3>Valvola</h3>
+      <p class="note">La valvola riceve gli ordini dal termostato virtuale: ora punta a <b>${n1(c.valve.setpoint)} °C</b> e misura <b>${n1(c.valve.current)} °C</b> sul termosifone.
+      Non serve regolarla a mano: verrebbe corretta di nuovo.</p></section>`;
+  }
+  const groups = { principale: 'Funzioni della valvola', configurazione: 'Configurazione', diagnostica: 'Stato e diagnostica' };
+  for (const [cat, title] of Object.entries(groups)) {
+    const list = c.device.filter(d => d.category === cat);
+    if (!list.length) continue;
+    html += `<section class="m-sec"><h3>${title}</h3>${list.map(controlRow).join('')}</section>`;
+  }
+  if (!c.device.length) html += `<p class="note">Nessun'altra funzione esposta dal dispositivo della valvola.</p>`;
+  $('#manage-body').innerHTML = html;
+}
+
+function controlRow(d) {
+  const id = esc(d.entity_id);
+  let input = '';
+  if (d.kind === 'switch' || d.kind === 'lock') {
+    const on = d.state === 'on' || d.state === 'locked';
+    input = `<label class="toggle"><input type="checkbox" data-entity="${id}" data-kind="${d.kind}" ${on ? 'checked' : ''} ${['unavailable', 'unknown'].includes(d.state) ? 'disabled' : ''}><span></span></label>`;
+  } else if (d.kind === 'select') {
+    input = `<select data-entity="${id}" data-kind="select">${(d.options ?? []).map(o => `<option ${o === d.state ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
+  } else if (d.kind === 'number') {
+    input = `<span class="numset"><input type="number" value="${esc(d.state)}" ${d.min != null ? `min="${d.min}"` : ''} ${d.max != null ? `max="${d.max}"` : ''} step="${d.step ?? 'any'}" id="n-${id}">
+      <button class="btn small" data-number="${id}">Imposta</button></span>`;
+  } else if (d.kind === 'button') {
+    input = `<button class="btn small" data-press="${id}" data-name="${esc(d.name)}">Avvia</button>`;
+  } else {
+    input = `<span class="val">${esc(d.state)}${d.unit ? ' ' + esc(d.unit) : ''}</span>`;
+  }
+  return `<div class="ctl"><div><b>${esc(d.name)}</b>${d.help ? `<small>${esc(d.help)}</small>` : ''}<code>${id}</code></div>${input}</div>`;
+}
+
+$('#manage').addEventListener('click', e => {
+  const step = e.target.closest('[data-step]');
+  if (step) {
+    const cur = Number(($('#sp-val').textContent || '0').replace(',', '.'));
+    pendingTemp = Math.round((cur + Number(step.dataset.step) * 0.5) * 10) / 10;
+    $('#sp-val').textContent = n1(pendingTemp);
+    clearTimeout(tempTimer);
+    tempTimer = setTimeout(() => { const v = pendingTemp; pendingTemp = null; send({ action: 'set_temperature', value: v }); }, 900);
+    return;
+  }
+  const mode = e.target.closest('[data-mode]');
+  if (mode) return send({ action: 'set_mode', value: mode.dataset.mode });
+  const preset = e.target.closest('[data-preset]');
+  if (preset) return send({ action: 'set_preset', value: preset.dataset.preset });
+  const num = e.target.closest('[data-number]');
+  if (num) return send({ action: 'entity', entity_id: num.dataset.number, value: Number(document.getElementById(`n-${num.dataset.number}`).value) });
+  const press = e.target.closest('[data-press]');
+  if (press && confirm(`Avviare "${press.dataset.name}"?`)) return send({ action: 'entity', entity_id: press.dataset.press });
+});
+$('#manage').addEventListener('change', e => {
+  const el = e.target;
+  if (!el.dataset.entity) return;
+  const value = el.dataset.kind === 'select' ? el.value : el.checked;
+  send({ action: 'entity', entity_id: el.dataset.entity, value });
+});
+$('#manage').addEventListener('close', () => { managing = null; pendingTemp = null; });
 
 const loaders = { stanze: loadRooms, diario: loadEvents, statistiche: loadStats, dispositivi: loadEntities };
 

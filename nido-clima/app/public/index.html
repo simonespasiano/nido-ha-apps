@@ -48,6 +48,7 @@
             <option value="impianto">Impianto</option>
             <option value="finestra">Finestre</option>
             <option value="obiettivo">Obiettivi e modalità</option>
+            <option value="comando">Comandi dati</option>
             <option value="sistema">Sistema</option>
           </select>
         </label>
@@ -65,6 +66,15 @@
       <div id="entities"></div>
     </section>
   </main>
+
+  <dialog id="manage" aria-labelledby="manage-title">
+    <form method="dialog" class="dlg-head">
+      <div><h2 id="manage-title">Gestisci</h2><p id="manage-sub"></p></div>
+      <button class="icon-btn" aria-label="Chiudi">✕</button>
+    </form>
+    <div id="manage-body"></div>
+  </dialog>
+  <div id="toast" role="status" hidden></div>
 
   <footer id="footer"></footer>
   <script src="app.js"></script>

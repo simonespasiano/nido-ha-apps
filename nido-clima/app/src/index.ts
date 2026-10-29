@@ -7,8 +7,9 @@ import { HASource } from './ha.js';
 import { DemoSource } from './demo.js';
 import { HttpError, MiniServer } from './http.js';
 import type { DataSource } from './types.js';
+import type { Action } from './controls.js';
 
-const VERSION = '0.1.1';
+const VERSION = '0.2.0';
 const here = dirname(fileURLToPath(import.meta.url));
 
 async function main() {
@@ -66,6 +67,25 @@ async function main() {
   app.get('/api/stats', () => src.rooms().map(r => roomStats(store, r)));
 
   app.get('/api/entities', () => src.listEntities?.() ?? []);
+
+  app.get('/api/rooms/:id/controls', p => {
+    const room = findRoom(p.id);
+    if (!src.controls) throw new HttpError(501, 'Comandi non disponibili');
+    return src.controls(room);
+  });
+
+  app.post('/api/rooms/:id/action', async (p, _q, req, body) => {
+    const room = findRoom(p.id);
+    if (!src.act) throw new HttpError(501, 'Comandi non disponibili');
+    if (!body || typeof body.action !== 'string') throw new HttpError(400, 'Azione mancante');
+    let description: string;
+    try { description = await src.act(room, body as Action); }
+    catch (err) { throw new HttpError(400, err instanceof Error ? err.message : String(err)); }
+    // l'ingress di Home Assistant indica chi sta usando il pannello
+    const who = req.headers['x-remote-user-display-name'] ?? req.headers['x-remote-user-name'];
+    engine.log(`${description}${who ? ` — da ${who}` : ''}`, room.id, 'comando');
+    return { ok: true, message: description };
+  });
 
   app.get('/api/diagnosis', () => src.diagnosis ?? { areas: [], unassigned: [], mode: 'auto' });
 

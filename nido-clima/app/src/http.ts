@@ -2,7 +2,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 
-type Handler = (params: Record<string, string>, query: URLSearchParams, req: IncomingMessage) => unknown | Promise<unknown>;
+type Handler = (params: Record<string, string>, query: URLSearchParams, req: IncomingMessage, body: any) => unknown | Promise<unknown>;
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
@@ -13,18 +13,22 @@ export class HttpError extends Error { constructor(public status: number, msg: s
 
 /** Server HTTP minimale senza dipendenze: rotte GET in JSON + file statici. */
 export class MiniServer {
-  private routes: { parts: string[]; handler: Handler }[] = [];
+  private routes: { method: string; parts: string[]; handler: Handler }[] = [];
 
   constructor(private publicDir: string) {}
 
   get(path: string, handler: Handler) {
-    this.routes.push({ parts: path.split('/').filter(Boolean), handler });
+    this.routes.push({ method: 'GET', parts: path.split('/').filter(Boolean), handler });
   }
 
-  private match(pathname: string) {
+  post(path: string, handler: Handler) {
+    this.routes.push({ method: 'POST', parts: path.split('/').filter(Boolean), handler });
+  }
+
+  private match(method: string, pathname: string) {
     const parts = pathname.split('/').filter(Boolean);
     for (const r of this.routes) {
-      if (r.parts.length !== parts.length) continue;
+      if (r.method !== method || r.parts.length !== parts.length) continue;
       const params: Record<string, string> = {};
       if (r.parts.every((p, i) => p.startsWith(':') ? (params[p.slice(1)] = decodeURIComponent(parts[i]), true) : p === parts[i])) {
         return { handler: r.handler, params };
@@ -48,11 +52,23 @@ export class MiniServer {
   listen(port: number) {
     const server = createServer(async (req, res) => {
       const url = new URL(req.url ?? '/', 'http://localhost');
-      if (req.method !== 'GET') { res.writeHead(405); res.end(); return; }
-      const m = this.match(url.pathname);
-      if (!m) return this.serveStatic(url.pathname, res);
+      const method = req.method ?? 'GET';
+      if (method !== 'GET' && method !== 'POST') { res.writeHead(405); res.end(); return; }
+      const m = this.match(method, url.pathname);
+      if (!m) {
+        if (method === 'GET') return this.serveStatic(url.pathname, res);
+        res.writeHead(404); res.end(); return;
+      }
       try {
-        const data = await m.handler(m.params, url.searchParams, req);
+        let body: any = undefined;
+        if (method === 'POST') {
+          const chunks: Buffer[] = [];
+          let size = 0;
+          for await (const c of req) { size += c.length; if (size > 65536) throw new HttpError(413, 'Richiesta troppo grande'); chunks.push(c); }
+          try { body = chunks.length ? JSON.parse(Buffer.concat(chunks).toString('utf8')) : {}; }
+          catch { throw new HttpError(400, 'JSON non valido'); }
+        }
+        const data = await m.handler(m.params, url.searchParams, req, body);
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
         res.end(JSON.stringify(data));
       } catch (err) {

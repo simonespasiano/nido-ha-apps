@@ -1,3 +1,5 @@
+import type { Action, RoomControls } from './controls.js';
+
 export interface Room {
   id: string;            // slug stabile, es. "camera"
   name: string;          // nome leggibile, es. "Camera"
@@ -34,7 +36,7 @@ export interface RoomStatus {
 export type EventKind =
   | 'calorifero_on' | 'calorifero_off'
   | 'finestra' | 'impianto_on' | 'impianto_off'
-  | 'obiettivo' | 'modalita' | 'sistema';
+  | 'obiettivo' | 'modalita' | 'comando' | 'sistema';
 
 export interface AppEvent {
   id?: number;
@@ -52,6 +54,9 @@ export interface DataSource {
   publishPlant?(plant: PlantStatus): Promise<void>;
   listEntities?(): EntityInfo[];
   diagnosis?: Diagnosis;
+  controls?(room: Room): RoomControls;
+  /** Esegue un comando e restituisce la descrizione per il diario. */
+  act?(room: Room, action: Action): Promise<string>;
 }
 
 export interface PlantStatus {
