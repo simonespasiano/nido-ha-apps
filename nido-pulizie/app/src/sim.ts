@@ -160,11 +160,15 @@ export class SimRobot {
     const parts = f.topic.split('/');
     const topic = shortTopic(f.topic);
     this.lastCmd = Date.now();
+    // come il robot vero: con il prefisso giusto accetta i comandi anche con l'id vuoto;
+    // in sonno profondo (SIM_SLEEP=1) risponde solo dopo un "app aperta"
+    if (parts[1] !== PK || (parts[2] !== DEVICE && parts[2] !== '')) return;
+    const asleep = process.env.SIM_SLEEP === '1' && Date.now() > this.awakeUntil;
     if (topic === T.DEVICE_INFO) {
-      if (parts[1] === PK || parts[1] === '') this.reply(new W().str(1, PK).str(2, DEVICE).str(3, FW).finish());
-      return; // prefisso sbagliato: il robot ignora
+      if (!asleep) this.reply(new W().str(1, PK).str(2, DEVICE).str(3, FW).finish());
+      return;
     }
-    if (parts[1] !== PK || parts[2] !== DEVICE) return;
+    if (asleep && topic !== T.NOTIFY_APP && topic !== T.ACTIVE_PUBLISH) return;
     const pb = PB.tryDecode(f.payload) ?? PB.empty();
     switch (topic) {
       case T.HEARTBEAT: return; // mai risposto

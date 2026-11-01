@@ -1,5 +1,5 @@
 name: NIDO Pulizie
-version: "0.1.0"
+version: "0.1.1"
 slug: nido_pulizie
 description: Robot Narwal in locale, senza cloud - stato e comandi, pulizia per stanza dalla mappa, programmi automatici, storico e statistiche
 url: https://github.com/simonespasiano/nido-ha-apps
@@ -31,3 +31,5 @@ schema:
   pubblica_in_home_assistant: bool
   conserva_giorni: int(30,1825)
   debug: bool
+  device_id: str?
+  product_key: str?

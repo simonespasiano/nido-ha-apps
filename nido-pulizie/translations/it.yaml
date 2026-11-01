@@ -16,3 +16,9 @@ configuration:
   debug:
     name: Registro dettagliato
     description: Scrive nel registro tutti i messaggi ricevuti dal robot
+  device_id:
+    name: ID del robot (facoltativo)
+    description: Solo se il riconoscimento automatico non riesce. È il codice che compare nel registro dopo "id"
+  product_key:
+    name: Product key (facoltativo)
+    description: Solo insieme a device_id. Per il Flow 2 di solito QxMSPG6VSO

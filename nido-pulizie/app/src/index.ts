@@ -15,7 +15,7 @@ import { FAN, MOP_STRENGTH, ROUTE, WATER, WORK_MODE, type RobotMap } from './pro
 import type { PB } from './pb.js';
 import { sanitizeProgram } from './programs.js';
 
-export const VERSION = '0.1.0';
+export const VERSION = '0.1.1';
 const here = dirname(fileURLToPath(import.meta.url));
 const opts = loadOptions();
 const store = new Store(DATA_DIR);
@@ -37,7 +37,7 @@ if (DEMO) {
 }
 
 const saved = store.getSetting<{ productKey: string; deviceId: string }>('robot_ids');
-const client = new NarwalClient({ host, port, productKey: DEMO ? undefined : saved?.productKey, deviceId: DEMO ? undefined : saved?.deviceId, log, debug: opts.debug });
+const client = new NarwalClient({ host, port, productKey: DEMO ? undefined : opts.product_key ?? saved?.productKey, deviceId: DEMO ? undefined : opts.device_id ?? saved?.deviceId, log, debug: opts.debug });
 const home: Home = DEMO ? new DemoHome() : new HAHome(log);
 await home.start();
 const engine = new Engine(client, store, home, opts.persone, log);

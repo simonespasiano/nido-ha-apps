@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1
+
+- Riconoscimento del robot più robusto: per ogni modello noto manda la stessa raffica di risveglio dell'app Narwal, così risponde anche un robot addormentato sulla base (prima mandava solo la richiesta di identificazione)
+- Il registro mostra cosa risponde il robot durante il riconoscimento
+- Nuove opzioni facoltative `device_id` e `product_key` per indicare il robot a mano
+
 ## 0.1.0
 
 - Collegamento diretto al robot Narwal sul WebSocket locale (porta 9002), senza cloud, con riconoscimento automatico di modello e identificativo

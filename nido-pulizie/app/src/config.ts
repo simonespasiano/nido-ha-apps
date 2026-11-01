@@ -7,6 +7,8 @@ export interface Options {
   pubblica_in_home_assistant: boolean;
   conserva_giorni: number;
   debug: boolean;
+  device_id?: string;
+  product_key?: string;
 }
 
 const DEFAULTS: Options = { indirizzo_ip: '', porta: 9002, persone: [], pubblica_in_home_assistant: true, conserva_giorni: 365, debug: false };
@@ -25,5 +27,7 @@ export function loadOptions(): Options {
   const o: Options = { ...DEFAULTS, ...raw, persone: Array.isArray(raw.persone) ? raw.persone : [] };
   if (process.env.NARWAL_IP) o.indirizzo_ip = process.env.NARWAL_IP;
   o.indirizzo_ip = String(o.indirizzo_ip ?? '').trim().replace(/^wss?:\/\//, '').replace(/[:/].*$/, '');
+  o.device_id = String(o.device_id ?? '').trim() || undefined;
+  o.product_key = String(o.product_key ?? '').trim() || undefined;
   return o;
 }

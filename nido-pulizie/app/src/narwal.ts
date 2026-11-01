@@ -12,7 +12,7 @@ const POLL_MS = 60_000;
 const RESPONSE_TIMEOUT_MS = 5_000;
 const LATE_GRACE_MS = 10_000;
 const UNAWAITED_WINDOW_MS = 5_000;
-const DISCOVERY_MS = 25_000;
+const DISCOVERY_MS = 45_000;
 
 export interface CommandResult { code: number; ok: boolean; message: string; data: PB }
 
@@ -84,6 +84,7 @@ export class NarwalClient extends EventEmitter {
     ws.onmessage = ev => {
       const data = ev.data instanceof ArrayBuffer ? Buffer.from(ev.data) : Buffer.isBuffer(ev.data) ? ev.data : null;
       if (data) this.onFrame(data);
+      else this.opts.log(`Messaggio di testo dal robot: ${String(ev.data).slice(0, 200)}`);
     };
     ws.onerror = () => { if (!opened) this.lastError = `Il robot non risponde su ${url}`; };
     ws.onclose = ev => {
@@ -118,6 +119,8 @@ export class NarwalClient extends EventEmitter {
       this.state.deviceId = ids.deviceId;
       this.opts.log(`Robot riconosciuto: ${MODEL_NAMES[ids.productKey] ?? ids.productKey}, id ${ids.deviceId}`);
       this.emit('identified', ids);
+      // lascia arrivare (e scartare) le risposte agli ultimi messaggi di identificazione
+      await new Promise(r => setTimeout(r, 1000));
     }
     this.state.model = MODEL_NAMES[this.state.productKey!] ?? 'Narwal';
     this.expected = [];
@@ -137,24 +140,53 @@ export class NarwalClient extends EventEmitter {
     this.emit('state', this.state);
   }
 
-  /** Trova product key e id del dispositivo provando tutti i prefissi noti. */
+  /**
+   * Trova product key e id del dispositivo. Un robot addormentato sulla base non risponde alla sola
+   * richiesta di identificazione: per ogni product key noto si manda la stessa raffica di risveglio
+   * dell'app Narwal (con id vuoto nel topic) e si legge l'id dalla risposta o dal primo broadcast.
+   */
   private discover(): Promise<{ productKey: string; deviceId: string }> {
     return new Promise((resolve, reject) => {
       const keys = this.state.productKey ? [this.state.productKey, ...PRODUCT_KEYS.filter(k => k !== this.state.productKey)] : PRODUCT_KEYS;
-      const frames = [...keys.map(k => buildFrame(`/${k}/${this.state.deviceId ?? ''}/${T.DEVICE_INFO}`)), buildFrame(`//${T.DEVICE_INFO}`)];
-      let i = 0;
-      const send = () => { try { this.ws?.send(new Uint8Array(frames[i++ % frames.length])); } catch { /* */ } };
-      for (let k = 0; k < 5; k++) send();
-      const tick = setInterval(send, 1000);
-      const timeout = setTimeout(() => { clearInterval(tick); this.discoverResolve = undefined; reject(new Error('il robot non ha risposto alla richiesta di identificazione: controlla l\'indirizzo IP e che sia acceso')); }, DISCOVERY_MS);
+      const id = this.state.deviceId ?? '';
+      const burst = (k: string): Buffer[] => [
+        buildFrame(`/${k}/${id}/${T.NOTIFY_APP}`, pVarint1(1)),
+        buildFrame(`/${k}/${id}/${T.ACTIVE_PUBLISH}`, subscriptionPayload(600)),
+        buildFrame(`/${k}/${id}/${T.ACTIVE_PUBLISH}`, pVarint1(600)),
+        buildFrame(`/${k}/${id}/${T.HEARTBEAT}`, pVarint1(1)),
+        buildFrame(`/${k}/${id}/${T.DEVICE_INFO}`),
+        buildFrame(`/${k}/${id}/${T.GET_BASE_STATUS}`),
+      ];
+      const queue: Buffer[] = [];
+      let round = 0;
+      const refill = () => { for (const k of keys) queue.push(...burst(k)); queue.push(buildFrame(`//${T.DEVICE_INFO}`)); round++; };
+      const tick = setInterval(() => {
+        if (!queue.length) { if (round >= 3) return; refill(); }
+        const f = queue.shift()!;
+        try { this.ws?.send(new Uint8Array(f)); } catch { /* chiusura gestita altrove */ }
+      }, 150);
+      this.discoverStats = { frames: 0, logged: 0 };
+      const timeout = setTimeout(() => {
+        clearInterval(tick); this.discoverResolve = undefined;
+        const n = this.discoverStats.frames;
+        reject(new Error(n
+          ? `il robot ha mandato ${n} messaggi ma nessuno con il suo identificativo (dettagli nel registro): indica device_id e product_key nella configurazione`
+          : 'nessuna risposta dal robot: probabilmente dorme sulla base. Apri per un attimo l\'app Narwal sul telefono (poi chiudila) o premi un tasto del robot; in alternativa indica device_id e product_key nella configurazione'));
+      }, DISCOVERY_MS);
       this.discoverResolve = ids => { clearInterval(tick); clearTimeout(timeout); this.discoverResolve = undefined; resolve(ids); };
     });
   }
+  private discoverStats = { frames: 0, logged: 0 };
 
   private onFrame(data: Buffer) {
     const f = parseFrame(data);
-    if (!f) return;
+    if (!f) { if (this.opts.debug || this.discoverResolve) this.opts.log(`Messaggio non riconosciuto dal robot: ${data.subarray(0, 60).toString('hex')}`); return; }
     if (this.discoverResolve) {
+      this.discoverStats.frames++;
+      if (this.discoverStats.logged < 6 || this.opts.debug) {
+        this.discoverStats.logged++;
+        this.opts.log(`Identificazione, ricevuto: tag 0x${f.tag.toString(16)} topic "${f.topic}" ${JSON.stringify(PB.tryDecode(f.payload)?.toJSON() ?? f.payload.toString('hex').slice(0, 120)).slice(0, 300)}`);
+      }
       if (f.tag === TAG_RESPONSE) {
         const pb = PB.tryDecode(f.payload);
         const pk = pb?.str(1)?.trim(), id = pb?.str(2)?.trim();
