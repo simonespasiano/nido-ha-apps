@@ -315,13 +315,13 @@ $('#manage').addEventListener('change', e => {
 });
 $('#manage').addEventListener('close', () => { managing = null; pendingTemp = null; });
 
-const loaders = { stanze: loadRooms, diario: loadEvents, statistiche: loadStats, dispositivi: loadEntities, soglie: () => window.loadThresholds?.() };
+const loaders = { casa: () => window.loadCasa?.(), stanze: loadRooms, diario: loadEvents, statistiche: loadStats, dispositivi: loadEntities, soglie: () => window.loadThresholds?.() };
 
 const refresh = () => {
   const active = document.querySelector('.tabs button[aria-selected="true"]').dataset.tab;
   if (active !== 'dispositivi' && active !== 'soglie') loaders[active]().catch(err => { $('#subtitle').textContent = `Errore di collegamento (${err.message})`; });
 };
-loadRooms().then(() => api('api/settings')).then(s => {
+loadRooms().then(() => window.loadCasa?.()).then(() => api('api/settings')).then(s => {
   $('#footer').textContent = `NIDO Clima ${overview.version} · soglie calorifero: acceso sopra +${n1(s.soglia_accensione)} °C, spento sotto +${n1(s.soglia_spegnimento)} °C · stanze ${s.stanze_manuali ? 'configurate a mano' : 'riconosciute dalle aree'}`;
 }).catch(err => { $('#subtitle').textContent = `Errore di collegamento (${err.message})`; });
 setInterval(refresh, 30000);

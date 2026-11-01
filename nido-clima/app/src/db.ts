@@ -22,6 +22,15 @@ export class Store {
       );
       CREATE INDEX IF NOT EXISTS idx_events_ts ON events(ts);
       CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+      CREATE INDEX IF NOT EXISTS idx_samples_ts ON samples(ts);
+      -- temperatura esterna oraria "osservata": dal sensore esterno se c'è, altrimenti dall'analisi del modello
+      CREATE TABLE IF NOT EXISTS outdoor_obs (ts INTEGER PRIMARY KEY, temp REAL, hum REAL, source TEXT NOT NULL);
+      -- previsioni dei modelli salvate a ogni aggiornamento, per misurarne l'accuratezza
+      CREATE TABLE IF NOT EXISTS forecasts (
+        made INTEGER NOT NULL, target INTEGER NOT NULL, model TEXT NOT NULL, temp REAL, hum REAL,
+        PRIMARY KEY (made, target, model)
+      );
+      CREATE INDEX IF NOT EXISTS idx_forecasts_target ON forecasts(target);
     `);
     // colonne aggiunte nella 0.4.2: temperatura della valvola e temperatura interna, separate
     const cols = (this.db.prepare(`PRAGMA table_info(samples)`).all() as any[]).map(c => c.name);
@@ -114,7 +123,7 @@ export class Store {
 
   /** Cancella storico e diario. Le impostazioni (soglie) restano, salvo richiesta. */
   reset(withSettings = false) {
-    this.db.exec(`DELETE FROM samples; DELETE FROM events;${withSettings ? ' DELETE FROM settings;' : ''}`);
+    this.db.exec(`DELETE FROM samples; DELETE FROM events; DELETE FROM forecasts;${withSettings ? ' DELETE FROM settings;' : ''}`);
     this.db.exec('VACUUM');
   }
 
@@ -122,6 +131,53 @@ export class Store {
     const s = this.db.prepare(`SELECT COUNT(*) AS n, MIN(ts) AS first FROM samples`).get() as any;
     const e = this.db.prepare(`SELECT COUNT(*) AS n FROM events`).get() as any;
     return { samples: s.n as number, events: e.n as number, since: (s.first as number | null) ?? null };
+  }
+
+  /** Medie della casa per intervalli di `bucketMs`: media, minimo e massimo fra le stanze, umidità, quota di termosifoni caldi. */
+  houseSeries(from: number, to: number, bucketMs: number) {
+    const rows = this.db.prepare(
+      `SELECT CAST(ts / ? AS INTEGER) * ? AS b, AVG(t_room) AS t, MIN(t_room) AS tmin, MAX(t_room) AS tmax,
+              AVG(h_room) AS h, AVG(heating) AS heat, COUNT(DISTINCT room) AS rooms
+       FROM samples WHERE ts >= ? AND ts < ? AND t_room IS NOT NULL GROUP BY b ORDER BY b`
+    ).all(bucketMs, bucketMs, from, to) as any[];
+    return rows.map(r => ({ ts: r.b + bucketMs / 2, t: r.t, tmin: r.tmin, tmax: r.tmax, h: r.h, heat: r.heat, rooms: r.rooms }));
+  }
+
+  upsertOutdoor(ts: number, temp: number | null, hum: number | null, source: string, overwrite = true) {
+    this.db.prepare(overwrite
+      ? `INSERT INTO outdoor_obs (ts, temp, hum, source) VALUES (?, ?, ?, ?)
+         ON CONFLICT(ts) DO UPDATE SET temp = excluded.temp, hum = excluded.hum, source = excluded.source`
+      : `INSERT OR IGNORE INTO outdoor_obs (ts, temp, hum, source) VALUES (?, ?, ?, ?)`).run(ts, temp, hum, source);
+  }
+
+  outdoor(from: number, to: number) {
+    return this.db.prepare(`SELECT ts, temp, hum, source FROM outdoor_obs WHERE ts >= ? AND ts <= ? ORDER BY ts`)
+      .all(from, to) as unknown as { ts: number; temp: number | null; hum: number | null; source: string }[];
+  }
+
+  saveForecasts(made: number, model: string, rows: { ts: number; temp: number | null; hum: number | null }[]) {
+    const st = this.db.prepare(`INSERT OR REPLACE INTO forecasts (made, target, model, temp, hum) VALUES (?, ?, ?, ?, ?)`);
+    this.db.exec('BEGIN');
+    try { for (const r of rows) st.run(made, r.ts, model, r.temp, r.hum); this.db.exec('COMMIT'); }
+    catch (e) { this.db.exec('ROLLBACK'); throw e; }
+  }
+
+  /** Errore delle previsioni con anticipo fra minLead e maxLead rispetto alla temperatura osservata. */
+  forecastAccuracy(since: number, minLead: number, maxLead: number) {
+    return this.db.prepare(
+      `SELECT f.model AS model, AVG(ABS(f.temp - o.temp)) AS mae, AVG(f.temp - o.temp) AS bias, COUNT(*) AS n, MIN(o.source) AS source
+       FROM forecasts f JOIN outdoor_obs o ON o.ts = f.target
+       WHERE f.target >= ? AND f.target - f.made BETWEEN ? AND ? AND f.temp IS NOT NULL AND o.temp IS NOT NULL
+       GROUP BY f.model`
+    ).all(since, minLead, maxLead) as unknown as { model: string; mae: number; bias: number; n: number; source: string }[];
+  }
+
+  hasForecasts() {
+    return (this.db.prepare(`SELECT COUNT(*) AS n FROM forecasts`).get() as any).n > 0;
+  }
+
+  pruneForecasts(days: number) {
+    this.db.prepare(`DELETE FROM forecasts WHERE target < ?`).run(Date.now() - days * 86_400_000);
   }
 
   isEmpty(): boolean {

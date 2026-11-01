@@ -71,6 +71,11 @@ export class HASource implements DataSource {
           authed = true;
           try {
             const states: HAState[] = await this.call({ type: 'get_states' });
+            try {
+              const cfg = await this.call({ type: 'get_config' });
+              if (typeof cfg.latitude === 'number' && typeof cfg.longitude === 'number')
+                this.loc = { lat: cfg.latitude, lon: cfg.longitude, name: cfg.location_name ?? 'Casa' };
+            } catch { /* la posizione resta sconosciuta */ }
             states.forEach(s => this.states.set(s.entity_id, s));
             await this.call({ type: 'subscribe_events', event_type: 'state_changed' });
             this.onLog('Collegato a Home Assistant');
@@ -214,6 +219,17 @@ export class HASource implements DataSource {
   }
 
   rooms() { return this.roomList; }
+
+  private loc: { lat: number; lon: number; name: string } | null = null;
+  location() { return this.loc; }
+
+  outdoorSensor() {
+    if (!this.opts.sensore_esterno) return null;
+    return {
+      temp: num(this.states.get(this.opts.sensore_esterno)?.state),
+      hum: this.opts.sensore_esterno_umidita ? num(this.states.get(this.opts.sensore_esterno_umidita)?.state) : null,
+    };
+  }
 
   controls(room: Room): RoomControls {
     const st = (id?: string) => (id ? this.states.get(id) : undefined);

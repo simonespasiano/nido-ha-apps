@@ -19,7 +19,8 @@
   </header>
 
   <nav class="tabs" role="tablist">
-    <button role="tab" data-tab="stanze" aria-selected="true">Stanze</button>
+    <button role="tab" data-tab="casa" aria-selected="true">Casa</button>
+    <button role="tab" data-tab="stanze" aria-selected="false">Stanze</button>
     <button role="tab" data-tab="diario">Diario</button>
     <button role="tab" data-tab="statistiche">Statistiche</button>
     <button role="tab" data-tab="dispositivi">Dispositivi</button>
@@ -27,7 +28,9 @@
   </nav>
 
   <main>
-    <section id="tab-stanze" class="tab">
+    <section id="tab-casa" class="tab"><div id="casa"><p class="note">Caricamento…</p></div></section>
+
+    <section id="tab-stanze" class="tab" hidden>
       <div id="rooms" class="rooms"></div>
       <p class="legend">
         <span><i class="sw sw-room"></i>Stanza</span>
@@ -143,5 +146,6 @@
   <script src="app.js"></script>
   <script src="zoom.js"></script>
   <script src="soglie.js"></script>
+  <script src="casa.js"></script>
 </body>
 </html>

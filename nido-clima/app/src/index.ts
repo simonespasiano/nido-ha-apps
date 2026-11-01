@@ -5,12 +5,14 @@ import { Store } from './db.js';
 import { Engine, roomStats, simulate } from './engine.js';
 import { DEFAULT_DETECTOR, DETECTOR_LIMITS, sanitizeDetector } from './detector.js';
 import { HASource } from './ha.js';
-import { DemoSource } from './demo.js';
+import { DemoSource, demoOutdoor } from './demo.js';
+import { DEFAULT_MODELS, Weather } from './weather.js';
+import { houseDashboard } from './house.js';
 import { HttpError, MiniServer } from './http.js';
 import type { DataSource } from './types.js';
 import type { Action } from './controls.js';
 
-const VERSION = '0.5.3';
+const VERSION = '0.6.0';
 const here = dirname(fileURLToPath(import.meta.url));
 
 async function main() {
@@ -18,7 +20,7 @@ async function main() {
   const store = new Store(DATA_DIR);
   const log = (m: string) => console.log(`[nido-clima] ${m}`);
 
-  const startTs = Date.now() - 36 * 3_600_000;
+  const startTs = Date.now() - 72 * 3_600_000;
   const src: DataSource = DEMO ? new DemoSource(startTs) : new HASource(opts, log);
   const engine = new Engine(src, store, {
     ...DEFAULT_DETECTOR,
@@ -34,12 +36,19 @@ async function main() {
   }
 
   if (DEMO && store.isEmpty()) {
-    log('Modalità demo: genero 36 ore di storico simulato…');
+    log('Modalità demo: genero 72 ore di storico simulato…');
     for (let t = startTs; t < Date.now(); t += 60_000) await engine.tick(t, false);
   }
   engine.log(`NIDO Clima ${VERSION} avviato${DEMO ? ' (demo)' : ''} — ${src.rooms().length} stanze`);
 
-  const tick = () => engine.tick().catch(e => log(`Errore nel ciclo: ${e}`));
+  const weather = new Weather(store, () => src.location?.() ?? null,
+    opts.modelli_meteo?.length ? opts.modelli_meteo : DEFAULT_MODELS,
+    () => !!opts.sensore_esterno, log, DEMO ? demoOutdoor : null);
+  weather.start();
+
+  const tick = () => engine.tick()
+    .then(() => { const o = src.outdoorSensor?.(); if (o && o.temp != null) weather.recordSensor(Date.now(), o.temp, o.hum); })
+    .catch(e => log(`Errore nel ciclo: ${e}`));
   await tick();
   setInterval(tick, opts.intervallo_secondi * 1000);
   setInterval(() => store.prune(opts.conserva_giorni), 6 * 3_600_000);
@@ -96,6 +105,13 @@ async function main() {
     engine.log(`${description}${who ? ` — da ${who}` : ''}`, room.id, 'comando');
     return { ok: true, message: description };
   });
+
+  app.get('/api/house', (_p, q) => {
+    const hours = Math.min(24 * 30, Math.max(6, Number(q.get('hours') ?? 48)));
+    return { ...houseDashboard(store, weather, engine.views(), hours), location: src.location?.() ?? null };
+  });
+
+  app.post('/api/weather/refresh', async () => { await weather.refresh(); return { ok: true, updated: weather.updated, errors: weather.errors }; });
 
   app.get('/api/diagnosis', () => src.diagnosis ?? { areas: [], unassigned: [], mode: 'auto' });
 

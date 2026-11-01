@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.0
+
+- Nuova scheda **Casa** (si apre per prima): media della temperatura e dell'umidità di tutta la casa, andamento delle ultime 3 ore, confronto con ieri alla stessa ora, escursione fra le stanze, punto di rugiada e umidità assoluta
+- **Confronto fra modelli meteo** per la posizione della casa (DWD ICON, ECMWF IFS, NOAA GFS, Météo-France, UK Met Office, ItaliaMeteo ICON-2I via Open-Meteo): consenso, dispersione, scarto di ogni modello e **errore medio sugli ultimi 7 giorni** con classifica
+- **Modello termico della casa** stimato dai dati: costante di tempo, dispersione verso l'esterno, effetto dei termosifoni, previsione della temperatura interna a 24 ore con banda di incertezza e verifica contro metodi semplici
+- **Consigli**: umidità alta o bassa, quando arieggiare abbassa davvero l'umidità, forti differenze fra stanze, freddo in arrivo
+- Nuove opzioni `modelli_meteo`, `sensore_esterno`, `sensore_esterno_umidita`
+
 ## 0.5.3
 
 - Rimossa ovunque la temperatura interna del chip della valvola (`device_temperature`): non compare più su schede, pannello Gestisci, grafico, tabella e CSV, e non viene usata per il rilevamento

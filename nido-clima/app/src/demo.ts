@@ -27,7 +27,9 @@ function setpoint(r: SimRoom, ts: number) {
   return sch;
 }
 
-const outdoor = (ts: number) => 8 + 4 * Math.sin(((minuteOfDay(ts) - 540) / 1440) * 2 * Math.PI);
+const outdoor = (ts: number) => 8 + 4 * Math.sin(((minuteOfDay(ts) - 540) / 1440) * 2 * Math.PI) + 1.5 * Math.sin(ts / 86_400_000 / 2.3);
+/** "Verità" esterna simulata, usata anche per generare le previsioni dei modelli in demo. */
+export const demoOutdoor = (ts: number) => ({ temp: outdoor(ts), hum: 78 - 12 * Math.sin(((minuteOfDay(ts) - 540) / 1440) * 2 * Math.PI) });
 
 function scheduled(r: SimRoom, ts: number) {
   const m = minuteOfDay(ts);
@@ -57,6 +59,7 @@ export class DemoSource implements DataSource {
   }
 
   async start() {}
+  location() { return { lat: 45.5306, lon: 9.2789, name: 'Cologno Monzese (demo)' }; }
   rooms() { return this.sims.map(s => s.room); }
 
   private step(sim: SimRoom, to: number) {

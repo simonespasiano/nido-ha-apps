@@ -60,6 +60,10 @@ export interface DataSource {
   publishPlant?(plant: PlantStatus): Promise<void>;
   listEntities?(): EntityInfo[];
   diagnosis?: Diagnosis;
+  /** Posizione della casa (da Home Assistant). */
+  location?(): { lat: number; lon: number; name: string } | null;
+  /** Temperatura e umidità di un eventuale sensore esterno. */
+  outdoorSensor?(): { temp: number | null; hum: number | null } | null;
   controls?(room: Room): RoomControls;
   /** Esegue un comando e restituisce la descrizione per il diario. */
   act?(room: Room, action: Action): Promise<string>;

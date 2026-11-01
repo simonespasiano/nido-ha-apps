@@ -87,6 +87,16 @@ Prima di salvare, **Prova queste soglie** le riapplica allo storico e mostra per
 il tempo caldo e la distribuzione della differenza valvola − stanza: se la differenza massima resta sotto la soglia di accensione,
 quel termosifone non verrà mai riconosciuto.
 
+## Dashboard Casa
+
+- **Media casa**: media dei sensori di tutte le stanze; il grafico mostra anche la fascia fra la stanza più fredda e la più calda.
+- **Meteo**: previsioni orarie da [Open-Meteo](https://open-meteo.com) (gratuito, nessuna chiave) per la posizione impostata in Home Assistant,
+  aggiornate ogni ora. I modelli si scelgono con `modelli_meteo` (identificativi Open-Meteo; vuoto = tutti quelli predefiniti).
+- **Errore dei modelli**: ogni previsione viene salvata e, passata l'ora, confrontata con il valore osservato. Senza sensore esterno
+  l'osservato è l'analisi oraria di Open-Meteo; indicando `sensore_esterno` (ed eventualmente `sensore_esterno_umidita`) il confronto è con la realtà di casa tua.
+- **Modello della casa**: dopo 24 ore di dati l'app stima come la temperatura media cambia in funzione dell'esterno e dei termosifoni accesi,
+  e la usa per prevedere le prossime 24 ore con la previsione di consenso.
+
 ## Dati
 
 Lo storico è in un database SQLite dentro la cartella dati dell'app, incluso nei backup di Home Assistant.

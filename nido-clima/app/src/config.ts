@@ -16,6 +16,9 @@ export interface Options {
   intervallo_secondi: number;
   conserva_giorni: number;
   pubblica_sensori: boolean;
+  modelli_meteo: string[];
+  sensore_esterno?: string;
+  sensore_esterno_umidita?: string;
 }
 
 const DEFAULTS: Options = {
@@ -25,6 +28,7 @@ const DEFAULTS: Options = {
   intervallo_secondi: 60,
   conserva_giorni: 120,
   pubblica_sensori: true,
+  modelli_meteo: [],
 };
 
 export const DEMO = process.env.DEMO === '1';
