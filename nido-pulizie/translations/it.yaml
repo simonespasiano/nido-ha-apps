@@ -1,0 +1,18 @@
+configuration:
+  indirizzo_ip:
+    name: Indirizzo IP del robot
+    description: L'IP fisso del Narwal sulla rete di casa, ad esempio 192.168.1.50
+  porta:
+    name: Porta
+    description: Porta del WebSocket locale del robot (di solito 9002)
+  persone:
+    name: Persone
+    description: Entità person.* da considerare per "casa vuota". Vuoto = tutte le persone di Home Assistant
+  pubblica_in_home_assistant:
+    name: Crea le entità in Home Assistant
+    description: Aspirapolvere, sensori e pulsanti via MQTT (serve il broker Mosquitto); senza MQTT solo sensori di lettura
+  conserva_giorni:
+    name: Giorni di storico
+  debug:
+    name: Registro dettagliato
+    description: Scrive nel registro tutti i messaggi ricevuti dal robot

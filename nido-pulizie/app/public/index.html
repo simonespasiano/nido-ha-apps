@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NIDO Pulizie</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7 7.5h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <div>
+        <h1>NIDO Pulizie</h1>
+        <p id="subtitle">Caricamento…</p>
+      </div>
+    </div>
+    <div id="status-pill" class="plant" hidden></div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="robot" aria-selected="true">Robot</button>
+    <button role="tab" data-tab="programmi" aria-selected="false">Programmi</button>
+    <button role="tab" data-tab="storico" aria-selected="false">Storico</button>
+    <button role="tab" data-tab="statistiche" aria-selected="false">Statistiche</button>
+    <button role="tab" data-tab="impostazioni" aria-selected="false">Impostazioni</button>
+  </nav>
+
+  <main>
+    <section id="tab-robot" class="tab">
+      <div id="banner"></div>
+      <div class="robot-grid">
+        <div class="col">
+          <div class="card" id="status-card"><p class="note">Caricamento…</p></div>
+          <div class="card" id="demo-card" hidden></div>
+        </div>
+        <div class="card map-card">
+          <div class="card-head"><h2>Mappa</h2><span class="note" id="map-note">Tocca le stanze da pulire</span></div>
+          <div class="map-wrap"><canvas id="map" aria-label="Mappa della casa"></canvas><div id="map-tip" class="tip" hidden></div></div>
+          <div id="room-list" class="room-list"></div>
+          <div id="clean-panel" class="clean-panel"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-programmi" class="tab" hidden>
+      <div class="toolbar"><button class="btn primary" id="new-program">+ Nuovo programma</button><span class="note" id="people-note"></span></div>
+      <div id="programs" class="programs"></div>
+    </section>
+
+    <section id="tab-storico" class="tab" hidden>
+      <div class="toolbar">
+        <label>Periodo <select id="hist-days"><option value="7">7 giorni</option><option value="30" selected>30 giorni</option><option value="90">90 giorni</option><option value="365">1 anno</option></select></label>
+        <div class="seg" id="hist-view"><button class="on" data-v="pulizie">Pulizie</button><button data-v="diario">Diario</button></div>
+      </div>
+      <div id="history"></div>
+    </section>
+
+    <section id="tab-statistiche" class="tab" hidden>
+      <div class="toolbar">
+        <div class="seg" id="stats-days"><button data-d="7">7 giorni</button><button class="on" data-d="30">30 giorni</button><button data-d="90">90 giorni</button><button data-d="365">1 anno</button></div>
+      </div>
+      <div id="stats"></div>
+    </section>
+
+    <section id="tab-impostazioni" class="tab" hidden>
+      <div id="settings"></div>
+    </section>
+  </main>
+
+  <footer id="footer"></footer>
+
+  <dialog id="prog-dlg">
+    <div class="dlg-head"><div><h2 id="prog-title">Programma</h2><p>Quando parte, quali stanze, come pulisce</p></div><button class="icon-btn" data-close aria-label="Chiudi">✕</button></div>
+    <form id="prog-form" class="dlg-body" method="dialog"></form>
+  </dialog>
+
+  <dialog id="sess-dlg" class="wide">
+    <div class="dlg-head"><div><h2 id="sess-title">Pulizia</h2><p id="sess-sub"></p></div><button class="icon-btn" data-close aria-label="Chiudi">✕</button></div>
+    <div class="dlg-body" id="sess-body"></div>
+  </dialog>
+
+  <div id="toast" hidden></div>
+  <script src="map.js"></script>
+  <script src="app.js"></script>
+  <script src="programmi.js"></script>
+  <script src="storico.js"></script>
+</body>
+</html>
