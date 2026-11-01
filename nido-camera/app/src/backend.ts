@@ -9,7 +9,9 @@ import { writeFileSync } from 'node:fs';
 import type { ServerResponse } from 'node:http';
 
 export const STREAM = 'camera';
-const API = 'http://127.0.0.1:1984';
+// porte non standard: con la rete dell'host non devono scontrarsi con il go2rtc interno di Home Assistant
+export const GO2RTC_API_PORT = 18984;
+const API = `http://127.0.0.1:${GO2RTC_API_PORT}`;
 
 export interface BackendStatus { kind: 'go2rtc' | 'demo'; running: boolean; source: string | null; active: boolean; consumers: number; error: string | null }
 
@@ -59,7 +61,7 @@ export class Go2rtcBackend implements Backend {
   private writeConfig() {
     const q = (s: string) => JSON.stringify(s); // una stringa JSON è anche YAML valido
     const lines = [
-      'api:', '  listen: "127.0.0.1:1984"', '  origin: "*"',
+      'api:', `  listen: "127.0.0.1:${GO2RTC_API_PORT}"`, '  origin: "*"',
       'rtsp:', '  listen: ":8554"',
       'webrtc:', '  listen: ""',
       'log:', `  level: ${this.debug ? 'debug' : 'info'}`,

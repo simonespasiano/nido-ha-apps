@@ -1,5 +1,5 @@
 name: NIDO Camera
-version: "0.1.0"
+version: "0.1.1"
 slug: nido_camera
 description: Camera HomeKit (Aqara G3) in Home Assistant con go2rtc - diretta, foto, registrazione al movimento, notifiche con foto e regole di privacy
 url: https://github.com/simonespasiano/nido-ha-apps
@@ -10,20 +10,17 @@ init: false
 startup: application
 boot: auto
 ingress: true
-ingress_port: 8099
+ingress_port: 18099
 panel_icon: mdi:cctv
 panel_title: NIDO Camera
 homeassistant_api: true
-host_network: false
+# rete dell'host: la camera HomeKit manda il video (UDP) all'indirizzo di go2rtc e la trova via mDNS
+host_network: true
 services:
   - mqtt:want
 map:
   - homeassistant_config:ro
   - media:rw
-ports:
-  8554/tcp: 8554
-ports_description:
-  8554/tcp: Flusso RTSP della camera, per Generic Camera o altri programmi
 options:
   camera: ""
   sensori_movimento: []

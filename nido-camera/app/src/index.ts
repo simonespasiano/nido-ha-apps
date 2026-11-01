@@ -6,11 +6,11 @@ import { DATA_DIR, DEMO, GO2RTC_BIN, HA_CONFIG_DIR, MEDIA_DIR, PORT, loadOptions
 import { Store } from './db.js';
 import { MiniServer, HttpError, HANDLED, sendFile } from './http.js';
 import { DemoHome, HAHome, type Home } from './ha.js';
-import { DemoBackend, Go2rtcBackend, STREAM, type Backend } from './backend.js';
+import { DemoBackend, Go2rtcBackend, GO2RTC_API_PORT, STREAM, type Backend } from './backend.js';
 import { Engine, MODE_LABEL } from './engine.js';
 import { Bridge } from './bridge.js';
 
-export const VERSION = '0.1.0';
+export const VERSION = '0.1.1';
 const here = dirname(fileURLToPath(import.meta.url));
 const opts = loadOptions();
 const store = new Store(DATA_DIR);
@@ -40,7 +40,7 @@ const who = (req: IncomingMessage) => {
 };
 
 const app = new MiniServer(join(here, '..', 'public'));
-app.proxy('/go2rtc', 1984, () => engine.liveAllowed() ? null : 'Diretta disattivata quando c\'è qualcuno in casa');
+app.proxy('/go2rtc', GO2RTC_API_PORT, () => engine.liveAllowed() ? null : 'Diretta disattivata quando c\'è qualcuno in casa');
 
 app.get('/api/overview', async () => {
   const st = await backend.status();
@@ -54,7 +54,7 @@ app.get('/api/overview', async () => {
     people: engine.people(), homeEmpty: engine.homeEmpty(), vacuumBusy: engine.vacuumBusy(),
     triggers: engine.triggers().map(id => ({ id, name: home.state(id)?.attributes.friendly_name ?? id, state: home.state(id)?.state ?? 'non trovato' })),
     recording: engine.recorder.current ? { ...engine.recorder.current } : null,
-    lastSnapshot: engine.lastSnapshot,
+    lastSnapshot: engine.lastSnapshot, go2rtcError: engine.lastGo2rtcError,
     notify: { configured: opts.notifiche, available: notifyAvailable },
     today: store.stats(today.getTime()),
     bytes: store.totalBytes(), maxBytes: opts.spazio_massimo_gb * 1024 ** 3, keepDays: opts.conserva_giorni,

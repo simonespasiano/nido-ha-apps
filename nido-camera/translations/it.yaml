@@ -23,5 +23,3 @@ configuration:
     name: Crea le entità in Home Assistant (MQTT)
   debug:
     name: Registro dettagliato
-network:
-  8554/tcp: Flusso RTSP della camera

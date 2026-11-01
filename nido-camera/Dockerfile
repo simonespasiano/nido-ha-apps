@@ -13,11 +13,11 @@ RUN apk add --no-cache ffmpeg tzdata \
  && case "$BUILD_ARCH" in aarch64) A=arm64 ;; armv7) A=arm ;; amd64) A=amd64 ;; *) A="$BUILD_ARCH" ;; esac \
  && wget -q -O /usr/local/bin/go2rtc "https://github.com/AlexxIT/go2rtc/releases/download/v${GO2RTC_VERSION}/go2rtc_linux_${A}" \
  && chmod +x /usr/local/bin/go2rtc
-ENV NODE_ENV=production
+ENV NODE_ENV=production PORT=18099
 WORKDIR /app
 COPY app/package.json ./
 COPY --from=build /build/dist ./dist
 COPY app/public ./public
 CMD ["node", "--disable-warning=ExperimentalWarning", "dist/index.js"]
 
-LABEL io.hass.type="addon" io.hass.version="0.1.0"
+LABEL io.hass.type="addon" io.hass.version="0.1.1"

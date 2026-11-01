@@ -1,6 +1,6 @@
 {
   "name": "nido-camera",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "description": "App Home Assistant: camera Aqara G3 via HomeKit e go2rtc: diretta, registrazione, notifiche, privacy",

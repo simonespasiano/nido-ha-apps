@@ -63,7 +63,7 @@ function renderLive() {
     $('#player').innerHTML = `${o.recording ? '<span class="rec">REC</span>' : ''}
       ${o.lastSnapshot ? `<img src="${media(o.lastSnapshot.rel)}" alt="Ultima foto">` : ''}
       <div class="overlay">${!o.live.allowed ? '<p>Diretta disattivata quando c\'è qualcuno in casa (Privacy).</p>' : !o.camera ? '<p>Camera non configurata</p>' :
-        `<button class="btn primary" id="start-live">▶ Avvia la diretta</button><p>${o.lastSnapshot ? `Ultima foto alle ${fmtHM(o.lastSnapshot.ts)}. ` : ''}Con HomeKit il video arriva dopo qualche secondo.</p>`}</div>`;
+        `<button class="btn primary" id="start-live">▶ Avvia la diretta</button><p>${o.lastSnapshot ? `Ultima foto alle ${fmtHM(o.lastSnapshot.ts)}${o.lastSnapshot.source === 'homekit' ? ' (da HomeKit: go2rtc non ha dato il video)' : ''}. ` : ''}Con HomeKit il video arriva dopo qualche secondo.</p>`}</div>`;
   } else {
     const rec = $('#player .rec');
     if (o.recording && !rec) $('#player').insertAdjacentHTML('afterbegin', '<span class="rec">REC</span>');
@@ -124,7 +124,17 @@ async function startLive() {
       v.background = false;
       v.src = new URL('go2rtc/api/ws?src=camera', location.href).href;
       box.innerHTML = ''; box.appendChild(v); S.liveEl = v;
-    } catch { box.innerHTML = `<img src="api/live.mjpeg?t=${Date.now()}" alt="Diretta">`; }
+      // se dopo 20 secondi non c'è immagine si prova il formato MJPEG, più lento ma più compatibile
+      setTimeout(() => {
+        if (!S.live || S.liveEl !== v) return;
+        const video = v.querySelector('video');
+        if (video && (video.readyState >= 2 || video.currentTime > 0)) return;
+        const why = v.querySelector('.status')?.textContent?.trim();
+        toast(`Video MSE non arrivato${why ? ` (${why})` : ''}: provo in MJPEG`, true);
+        v.remove(); S.liveEl = null;
+        box.innerHTML = `<img src="api/live.mjpeg?t=${Date.now()}" alt="Diretta" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'overlay',innerHTML:'<p>Anche il video MJPEG non arriva: guarda il Registro di go2rtc in Impostazioni.</p>'}))">`;
+      }, 20_000);
+    } catch (e) { toast(`Lettore go2rtc non caricato (${e.message}): provo in MJPEG`, true); box.innerHTML = `<img src="api/live.mjpeg?t=${Date.now()}" alt="Diretta">`; }
   } else box.innerHTML = `<img src="api/live.mjpeg?t=${Date.now()}" alt="Diretta">`;
   renderLive();
 }
@@ -262,7 +272,7 @@ async function loadSettings() {
             <li>Tieni a portata il <b>codice di configurazione HomeKit</b> (8 cifre): è sull'etichetta sotto la G3 o nella confezione. Nell'app Aqara lo trovi anche nelle impostazioni della camera alla voce HomeKit.</li>
             <li>In Home Assistant: <b>Impostazioni → Dispositivi e servizi</b>. Dovrebbe comparire tra i rilevati <b>HomeKit Device · Camera Hub G3</b>: Configura e inserisci il codice. Se non compare: Aggiungi integrazione → HomeKit Device.</li>
             <li>Torna qui e premi <b>Ricontrolla</b>.</li></ol>`)}
-        ${step(o.backend.running || o.demo, 'go2rtc (video)', `<small>${o.demo ? 'non usato nella demo' : o.backend.running ? `in funzione${o.backend.active ? ' · flusso della camera attivo' : ' · il flusso parte quando serve'}` : 'non in funzione'}${o.backend.error ? ` · ultimo errore: ${esc(o.backend.error)}` : ''}</small>`, !o.backend.running)}
+        ${step(o.backend.running || o.demo, 'go2rtc (video)', `<small>${o.demo ? 'non usato nella demo' : o.backend.running ? `in funzione${o.backend.active ? ' · flusso della camera attivo' : ' · il flusso parte quando serve'}` : 'non in funzione'}${o.backend.error ? ` · ultimo errore: ${esc(o.backend.error)}` : ''}${o.go2rtcError ? ` · foto: ${esc(o.go2rtcError)}` : ''}</small>`, !o.backend.running)}
         ${step(o.triggers.length > 0, 'Sensori di movimento', o.triggers.length ? `<small>${o.triggers.map(t => `${esc(t.name)} (${esc(t.state)})`).join(', ')}</small>` : '<small>Nessuno: indicali nell\'opzione <code>sensori_movimento</code> (es. binary_sensor.camera_hub_g3_motion)</small>', true)}
         ${step(o.notify.configured.length > 0, 'Notifiche', `<small>${o.notify.configured.length ? `A ${o.notify.configured.map(esc).join(', ')}` : 'Nessun servizio: aggiungilo nell\'opzione <code>notifiche</code>'}${o.notify.available.length ? `. Disponibili: ${o.notify.available.map(s => `<code class="copy">${esc(s)}</code>`).join(' ')}` : ''}</small>
           ${o.notify.configured.length ? '<div class="go" style="margin-top:6px"><button class="btn small" data-test-notify>Manda una notifica di prova</button></div>' : ''}`, true)}

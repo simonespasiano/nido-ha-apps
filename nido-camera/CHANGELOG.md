@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.1
+
+- L'app usa la rete dell'host: la camera HomeKit manda il video in UDP all'indirizzo di go2rtc e la si trova via mDNS, cose che dalla rete interna dei container non funzionano. Era la causa più probabile della diretta che non parte
+- go2rtc su porte proprie (API 18984), per non scontrarsi con il go2rtc interno di Home Assistant; pannello sulla porta 18099
+- Se il video MSE non arriva entro 20 secondi la diretta riprova in MJPEG e dice perché
+- Si vede da dove arriva la foto: go2rtc oppure la foto HomeKit di Home Assistant (quando go2rtc non dà il video)
+
 ## 0.1.0
 
 - Video della camera HomeKit (Aqara G3) tramite go2rtc, riusando l'abbinamento HomeKit fatto in Home Assistant

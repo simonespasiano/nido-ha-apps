@@ -57,7 +57,8 @@ export class Engine extends EventEmitter {
   recorder: Recorder;
   private activeEvent: number | null = null;
   private lastNotify = 0;
-  lastSnapshot: { ts: number; rel: string } | null = null;
+  lastSnapshot: { ts: number; rel: string; source: 'go2rtc' | 'homekit' } | null = null;
+  lastGo2rtcError: string | null = null;
   panelUrl: string | null = null;
 
   constructor(public opts: Options, public store: Store, public home: Home, public backend: Backend, public mediaDir: string, private log: (m: string) => void) {
@@ -157,14 +158,21 @@ export class Engine extends EventEmitter {
 
   async snapshot(eventId?: number, user: string | null = null): Promise<{ rel: string; jpg: Buffer }> {
     let jpg: Buffer | null = null, err: unknown;
-    try { jpg = await this.backend.snapshot(); } catch (e) { err = e; }
-    if (!jpg && this.camera?.cameraEntity) jpg = await this.home.cameraSnapshot(this.camera.cameraEntity); // foto via HomeKit di Home Assistant
+    let source: 'go2rtc' | 'homekit' = 'go2rtc';
+    try { jpg = await this.backend.snapshot(); this.lastGo2rtcError = null; }
+    catch (e) {
+      err = e;
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg !== this.lastGo2rtcError) this.log(`Foto da go2rtc non riuscita (${msg}): uso la foto HomeKit di Home Assistant`);
+      this.lastGo2rtcError = msg;
+    }
+    if (!jpg && this.camera?.cameraEntity) { jpg = await this.home.cameraSnapshot(this.camera.cameraEntity); source = 'homekit'; } // foto via HomeKit di Home Assistant
     if (!jpg) throw err ?? new Error('nessuna immagine');
     const d = new Date();
     const rel = `foto/${d.toISOString().slice(0, 10)}/${d.getTime()}${eventId ? `-${eventId}` : ''}.jpg`;
     mkdirSync(dirname(join(this.mediaDir, rel)), { recursive: true });
     writeFileSync(join(this.mediaDir, rel), jpg);
-    this.lastSnapshot = { ts: d.getTime(), rel };
+    this.lastSnapshot = { ts: d.getTime(), rel, source };
     if (eventId) {
       const e = this.store.event(eventId);
       this.store.updateEvent(eventId, { thumb: rel, bytes: (e?.bytes ?? 0) + jpg.length });
