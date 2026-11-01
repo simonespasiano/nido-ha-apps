@@ -1,0 +1,27 @@
+configuration:
+  camera:
+    name: Camera
+    description: Nome dell'abbinamento HomeKit in Home Assistant (es. Camera-Hub-G3-AB12). Vuoto = la prima camera HomeKit trovata
+  sensori_movimento:
+    name: Sensori che fanno registrare
+    description: binary_sensor di movimento, presenza o porta. Vuoto = il sensore di movimento della camera
+  notifiche:
+    name: Notifiche
+    description: Servizi notify a cui mandare l'avviso con la foto, es. mobile_app_iphone_di_simone
+  persone:
+    name: Persone
+    description: Entità person.* per capire se la casa è vuota. Vuoto = tutte
+  clip_dopo_movimento_secondi:
+    name: Secondi di registrazione dopo la fine del movimento
+  clip_massima_secondi:
+    name: Durata massima di una clip (secondi)
+  conserva_giorni:
+    name: Giorni di conservazione
+  spazio_massimo_gb:
+    name: Spazio massimo (GB)
+  pubblica_in_home_assistant:
+    name: Crea le entità in Home Assistant (MQTT)
+  debug:
+    name: Registro dettagliato
+network:
+  8554/tcp: Flusso RTSP della camera

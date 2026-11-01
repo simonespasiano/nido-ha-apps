@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NIDO Camera</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 10.5l5-3v9l-5-3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+      <div>
+        <h1>NIDO Camera</h1>
+        <p id="subtitle">Caricamento…</p>
+      </div>
+    </div>
+    <div id="status-pill" class="plant" hidden></div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="diretta" aria-selected="true">Diretta</button>
+    <button role="tab" data-tab="eventi" aria-selected="false">Eventi</button>
+    <button role="tab" data-tab="privacy" aria-selected="false">Privacy</button>
+    <button role="tab" data-tab="impostazioni" aria-selected="false">Impostazioni</button>
+  </nav>
+
+  <main>
+    <section id="tab-diretta" class="tab">
+      <div id="banner"></div>
+      <div class="live-grid">
+        <div class="col">
+          <div class="player" id="player"></div>
+          <div class="go" id="live-actions"></div>
+          <div class="card"><div class="card-head"><h2>Ultimi eventi</h2><button class="btn small" data-goto="eventi">Tutti</button></div><div id="recent" class="thumbs small"></div></div>
+        </div>
+        <div class="col">
+          <div class="card" id="now-card"></div>
+          <div class="card" id="demo-card" hidden></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-eventi" class="tab" hidden>
+      <div class="toolbar">
+        <label>Periodo <select id="ev-days"><option value="1">Oggi e ieri</option><option value="7" selected>7 giorni</option><option value="30">30 giorni</option></select></label>
+        <div class="seg" id="ev-kind"><button class="on" data-k="tutti">Tutti</button><button data-k="clip">Con video</button><button data-k="movimento">Movimenti</button><button data-k="foto">Foto</button></div>
+      </div>
+      <div id="events"></div>
+    </section>
+
+    <section id="tab-privacy" class="tab" hidden><div id="privacy"></div></section>
+    <section id="tab-impostazioni" class="tab" hidden><div id="settings"></div></section>
+  </main>
+
+  <footer id="footer"></footer>
+
+  <dialog id="viewer" class="wide">
+    <div class="dlg-head"><div><h2 id="v-title">Evento</h2><p id="v-sub"></p></div><button class="icon-btn" data-close aria-label="Chiudi">✕</button></div>
+    <div class="dlg-body viewer" id="v-body"></div>
+  </dialog>
+
+  <div id="toast" hidden></div>
+  <script src="app.js"></script>
+</body>
+</html>
