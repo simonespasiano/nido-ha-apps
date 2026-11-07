@@ -167,7 +167,9 @@ export class Hardware {
       try {
         execFileSync('mkdir', ['-p', dir]);
         if (!existsSync(join(dir, 'class'))) execFileSync('mount', ['-t', 'sysfs', '-o', 'rw,nosuid,nodev,noexec', 'sysfs', dir], { stdio: 'pipe' });
-        this.wroot = dir; remount = 'montato a parte in scrittura';
+        const flags = () => readFileSync('/proc/mounts', 'utf8').split('\n').find(l => l.split(' ')[1] === dir)?.split(' ')[3] ?? '?';
+        if (flags().split(',')[0] === 'ro') { try { execFileSync('mount', ['-o', 'remount,rw', dir], { stdio: 'pipe' }); } catch { /* si riporta sotto */ } }
+        this.wroot = dir; remount = `montato a parte (${flags()})`;
         if (attempt()) return this.control;
         this.wroot = null;
       } catch (e: any) { remount = `montaggio in scrittura non riuscito: ${String(e?.stderr ?? e?.message ?? e).trim().split('\n')[0]}`; }

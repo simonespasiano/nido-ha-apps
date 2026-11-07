@@ -1,5 +1,5 @@
 name: NIDO Sistema
-version: "0.2.0"
+version: "0.2.1"
 slug: nido_sistema
 description: Raspberry Pi in chiaro - temperature di CPU, RP1 e SSD, ventola con curve e modalità, alimentazione, storico e avvisi
 url: https://github.com/simonespasiano/nido-ha-apps
@@ -9,7 +9,9 @@ init: false
 startup: services
 boot: auto
 ingress: true
-ingress_port: 8099
+ingress_port: 18098
+# rete dell'host: il /sys montato dall'app è quello del sistema (in scrittura) e non quello del container
+host_network: true
 panel_icon: mdi:raspberry-pi
 panel_title: NIDO Sistema
 homeassistant_api: true

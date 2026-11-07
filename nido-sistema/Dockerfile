@@ -8,11 +8,11 @@ COPY app/src ./src
 RUN npx tsc
 
 FROM node:22-alpine
-ENV NODE_ENV=production
+ENV NODE_ENV=production PORT=18098
 WORKDIR /app
 COPY app/package.json ./
 COPY --from=build /build/dist ./dist
 COPY app/public ./public
 CMD ["node", "--disable-warning=ExperimentalWarning", "dist/index.js"]
 
-LABEL io.hass.type="addon" io.hass.version="0.2.0"
+LABEL io.hass.type="addon" io.hass.version="0.2.1"

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1
+
+- L'app usa la rete dell'host. Un `/sys` montato dentro un container appartiene alla rete del container e resta in sola lettura come quello che Home Assistant gli dà; con la rete dell'host il montaggio è quello del sistema
+- La diagnosi mostra come è stato montato il `/sys` scrivibile
+
 ## 0.2.0
 
 - Comando della ventola sistemato. Home Assistant monta `/sys` in sola lettura in tutte le app, anche con l'accesso completo, che dà solo l'accesso ai dispositivi. Ora l'app chiede il solo permesso `SYS_ADMIN` e monta un secondo `/sys`, in scrittura, nella propria cartella privata
