@@ -111,7 +111,7 @@ function renderFan() {
   const o = S.ov, f = o.fan, s = o.snap;
   const mode = S.draft?.mode ?? f.mode;
   $('#fan-note').innerHTML = !f.hasFan ? '<div class="banner"><b>Ventola non trovata</b>L\'Active Cooler non risulta collegato, oppure il sistema non espone il driver della ventola.</div>'
-    : f.note ? `<div class="banner bad"><b>Non posso comandare la ventola</b>${esc(f.note)}${f.supervisor ? `<br><span class="note">Secondo Home Assistant: Modalità protezione <b>${f.supervisor.protected ? 'attiva' : 'disattivata'}</b>; accesso completo ${f.fullAccess ? 'presente' : 'assente'} nel processo dell'app.${f.supervisor.protected === false && !f.fullAccess ? ' La protezione risulta spenta ma l\'app non ha ricevuto i permessi: premi Arresta e poi Avvia (non Riavvia), o riavvia il sistema.' : ''}</span>` : ''}</div>` : '';
+    : f.note ? `<div class="banner bad"><b>Non posso comandare la ventola</b>${esc(f.note)}${f.fullAccess === false ? '<br><span class="note">Manca il permesso SYS_ADMIN: dalla 0.2.0 lo concede Home Assistant all\'installazione. Aggiorna l\'app e premi Arresta e poi Avvia.</span>' : ''}</div>` : '';
   $('#modes').innerHTML = o.modes.map(m => `<button class="mode ${m.id === mode ? 'on' : ''}" data-mode="${m.id}"><b>${esc(m.label)}</b><small>${esc(m.help)}</small></button>`).join('');
   const sel = o.modes.find(m => m.id === mode);
   const curve = mode === 'personalizzata' ? (S.draft?.custom ?? f.custom) : sel?.curve;

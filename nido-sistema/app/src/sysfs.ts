@@ -41,6 +41,9 @@ export class Hardware {
   private originalMode: string | null = null;
   control: FanControl = { method: 'none', writable: false, reason: null };
   private taken = false;
+  /** Dove scrivere: /sys, oppure un sysfs montato a parte in scrittura quando /sys è in sola lettura. */
+  private wroot: string | null = null;
+  private w(path: string, value: string) { writeFileSync(this.wroot ? this.wroot + path.slice(this.sys.length) : path, value); }
 
   constructor(private sys = '/sys', private proc = '/proc', private diskPath = '/data') { this.discover(); }
 
@@ -150,22 +153,29 @@ export class Hardware {
     const errors: string[] = [];
     const attempt = () => {
       for (const [path, value, method] of tries) {
-        try { writeFileSync(path, value); this.control = { method, writable: true, reason: null }; this.taken = true; return true; }
+        try { this.w(path, value); this.control = { method, writable: true, reason: null }; this.taken = true; return true; }
         catch (e: any) { errors.push(`${path.replace(this.sys, '/sys')}: ${e?.code ?? e?.message ?? e}`); }
       }
       return false;
     };
     if (attempt()) return this.control;
-    // /sys montato in sola lettura: con l'accesso completo si può rimontare in scrittura
+    // Home Assistant monta /sys in sola lettura in tutte le app: con il permesso SYS_ADMIN
+    // si monta un secondo sysfs, in scrittura, in una cartella privata dell'app
     let remount = '';
     if (errors.some(x => x.includes('EROFS')) && this.sys === '/sys') {
-      try { execFileSync('mount', ['-o', 'remount,rw', '/sys'], { stdio: 'pipe' }); remount = 'rimontato in scrittura'; if (attempt()) return this.control; }
-      catch (e: any) { remount = `rimontaggio non riuscito: ${String(e?.stderr ?? e?.message ?? e).trim().split('\n')[0]}`; }
+      const dir = '/run/nido-sys';
+      try {
+        execFileSync('mkdir', ['-p', dir]);
+        if (!existsSync(join(dir, 'class'))) execFileSync('mount', ['-t', 'sysfs', '-o', 'rw,nosuid,nodev,noexec', 'sysfs', dir], { stdio: 'pipe' });
+        this.wroot = dir; remount = 'montato a parte in scrittura';
+        if (attempt()) return this.control;
+        this.wroot = null;
+      } catch (e: any) { remount = `montaggio in scrittura non riuscito: ${String(e?.stderr ?? e?.message ?? e).trim().split('\n')[0]}`; }
     }
     const full = this.fullAccess();
     const hint = full === false
-      ? 'L\'app gira senza accesso completo all\'hardware: disattiva la Modalità protezione nella scheda Informazioni dell\'app e riavviala.'
-      : 'L\'app ha l\'accesso completo ma il sistema non lascia comunque scrivere in /sys.';
+      ? 'L\'app non ha il permesso SYS_ADMIN che serve a scrivere in /sys: aggiorna l\'app all\'ultima versione e premi Arresta e poi Avvia.'
+      : 'L\'app ha il permesso SYS_ADMIN ma il sistema non lascia comunque scrivere in /sys.';
     this.control = { method: 'none', writable: false, reason: `${hint} Dettaglio: ${errors.join('; ')}${remount ? ` · /sys ${remount}` : ''}` };
     return this.control;
   }
@@ -181,8 +191,8 @@ export class Hardware {
   /** Restituisce la ventola al firmware/kernel. */
   releaseControl() {
     if (!this.taken || !this.zone) return;
-    try { if (this.control.method === 'user_space' && this.originalPolicy) writeFileSync(join(this.zone, 'policy'), this.originalPolicy); } catch { /* */ }
-    try { if (this.control.method === 'disabled') writeFileSync(join(this.zone, 'mode'), this.originalMode ?? 'enabled'); } catch { /* */ }
+    try { if (this.control.method === 'user_space' && this.originalPolicy) this.w(join(this.zone, 'policy'), this.originalPolicy); } catch { /* */ }
+    try { if (this.control.method === 'disabled') this.w(join(this.zone, 'mode'), this.originalMode ?? 'enabled'); } catch { /* */ }
     this.taken = false;
   }
 
@@ -193,12 +203,12 @@ export class Hardware {
     const p = Math.max(0, Math.min(100, percent));
     const fh = this.fanHwmon;
     if (fh && existsSync(join(fh, 'pwm1'))) {
-      writeFileSync(join(fh, 'pwm1'), String(Math.round(p * 2.55)));
+      this.w(join(fh, 'pwm1'), String(Math.round(p * 2.55)));
       return;
     }
     if (this.fanDev) {
       const max = num(join(this.fanDev, 'max_state')) ?? 4;
-      writeFileSync(join(this.fanDev, 'cur_state'), String(Math.round((p / 100) * max)));
+      this.w(join(this.fanDev, 'cur_state'), String(Math.round((p / 100) * max)));
     }
   }
 }

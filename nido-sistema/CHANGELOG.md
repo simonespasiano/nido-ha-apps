@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.0
+
+- Comando della ventola sistemato. Home Assistant monta `/sys` in sola lettura in tutte le app, anche con l'accesso completo, che dà solo l'accesso ai dispositivi. Ora l'app chiede il solo permesso `SYS_ADMIN` e monta un secondo `/sys`, in scrittura, nella propria cartella privata
+- Non serve più disattivare la Modalità protezione: si può riattivare
+
 ## 0.1.3
 
 - La scheda Ventola mostra se per Home Assistant la Modalità protezione è attiva e se l'app ha davvero i permessi, per capire subito dove sta il blocco

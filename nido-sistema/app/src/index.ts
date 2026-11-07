@@ -10,7 +10,7 @@ import { Engine, type Options } from './engine.js';
 import { Bridge } from './bridge.js';
 import { CURVES, MODE_HELP, MODE_LABEL, SAFETY_TEMP, type FanMode } from './fan.js';
 
-export const VERSION = '0.1.3';
+export const VERSION = '0.2.0';
 const DEMO = process.env.DEMO === '1';
 const DATA_DIR = process.env.DATA_DIR ?? '/data';
 const PORT = Number(process.env.PORT ?? 8099);

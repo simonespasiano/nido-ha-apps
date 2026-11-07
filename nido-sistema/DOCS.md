@@ -4,9 +4,8 @@ Mostra come sta il Raspberry Pi su cui gira Home Assistant e permette di decider
 
 ## Installazione
 
-1. Installa l'app e, **prima di avviarla**, disattiva **Modalità protezione** nella sua scheda *Informazioni*.
-   Senza questo passo l'app legge tutto ma non può comandare la ventola: per farlo deve scrivere nelle impostazioni del sistema (`/sys`).
-2. Avviala e attiva *Mostra nella barra laterale*.
+1. Installa l'app, avviala e attiva *Mostra nella barra laterale*. La Modalità protezione può restare attiva.
+2. Per comandare la ventola l'app chiede a Home Assistant il permesso `SYS_ADMIN`. Home Assistant monta `/sys` in sola lettura in tutte le app: con quel permesso l'app monta una seconda copia in scrittura, usata solo per la ventola.
 
 ## Cosa mostra
 
