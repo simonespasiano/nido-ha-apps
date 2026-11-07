@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1
+
+- Disattivato il profilo AppArmor dell'app: anche con l'accesso completo impediva di scrivere in `/sys`, quindi di comandare la ventola
+- Se il controllo non riesce, il messaggio riporta il file e l'errore esatti
+
 ## 0.1.0
 
 - Temperature di CPU, chip RP1 e SSD NVMe; velocità reale della ventola; frequenza, uso e carico della CPU; memoria, disco, tempo di accensione

@@ -143,13 +143,16 @@ export class Hardware {
     const policyP = join(this.zone, 'policy'), modeP = join(this.zone, 'mode');
     this.originalPolicy = read(policyP); this.originalMode = read(modeP);
     const avail = read(join(this.zone, 'available_policies'))?.split(/\s+/) ?? [];
-    try {
-      if (avail.includes('user_space')) { writeFileSync(policyP, 'user_space'); this.control = { method: 'user_space', writable: true, reason: null }; }
-      else { writeFileSync(modeP, 'disabled'); this.control = { method: 'disabled', writable: true, reason: null }; }
-      this.taken = true;
-    } catch (e: any) {
-      this.control = { method: 'none', writable: false, reason: e?.code === 'EROFS' || e?.code === 'EACCES' || e?.code === 'EPERM' ? 'Il sistema non permette di scrivere: serve l\'accesso completo all\'hardware (disattiva la "Modalità protezione" dell\'app)' : `Scrittura non riuscita: ${e?.message ?? e}` };
+    const tries: [string, string, FanControl['method']][] = [];
+    if (avail.includes('user_space')) tries.push([policyP, 'user_space', 'user_space']);
+    tries.push([modeP, 'disabled', 'disabled']);
+    const errors: string[] = [];
+    for (const [path, value, method] of tries) {
+      try { writeFileSync(path, value); this.control = { method, writable: true, reason: null }; this.taken = true; return this.control; }
+      catch (e: any) { errors.push(`${path.replace(this.sys, '/sys')}: ${e?.code ?? e?.message ?? e}`); }
     }
+    const denied = errors.some(x => /EROFS|EACCES|EPERM/.test(x));
+    this.control = { method: 'none', writable: false, reason: `${denied ? 'Il sistema non permette di scrivere in /sys: controlla che la Modalità protezione dell\'app sia disattivata e riavvia l\'app.' : 'Scrittura non riuscita.'} Dettaglio: ${errors.join('; ')}` };
     return this.control;
   }
 

@@ -1,5 +1,5 @@
 name: NIDO Sistema
-version: "0.1.0"
+version: "0.1.1"
 slug: nido_sistema
 description: Raspberry Pi in chiaro - temperature di CPU, RP1 e SSD, ventola con curve e modalità, alimentazione, storico e avvisi
 url: https://github.com/simonespasiano/nido-ha-apps
@@ -15,6 +15,8 @@ panel_title: NIDO Sistema
 homeassistant_api: true
 # serve scrivere in /sys per comandare la ventola: funziona solo con la Modalità protezione disattivata
 full_access: true
+# il profilo AppArmor predefinito vieta la scrittura in /sys anche con accesso completo
+apparmor: false
 services:
   - mqtt:want
 options:
