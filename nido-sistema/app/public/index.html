@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NIDO Sistema</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 14px; }
+    @media (max-width: 440px) { .tiles { grid-template-columns: 1fr 1fr; } }
+    .tile { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .tile span { font-size: 12px; color: var(--muted); }
+    .tile b { font-size: 28px; font-weight: 400; font-variant-numeric: tabular-nums; line-height: 1.15; }
+    .tile b small { font-size: 14px; color: var(--muted); margin-left: 2px; }
+    .tile > small { font-size: 12px; color: var(--muted); }
+    .tile.hot b { color: var(--bad); }
+    .tile.warm b { color: var(--warn); }
+    .bar { height: 6px; border-radius: 3px; background: var(--bg); overflow: hidden; margin-top: 4px; }
+    .bar i { display: block; height: 100%; background: var(--c1); }
+    .modes { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+    .mode { text-align: left; font: inherit; color: inherit; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px; cursor: pointer; display: flex; flex-direction: column; gap: 4px; }
+    .mode:hover { border-color: var(--accent); }
+    .mode.on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+    .mode b { font-size: 15px; }
+    .mode small { color: var(--muted); font-size: 12px; line-height: 1.35; }
+    .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+    .legend i { display: inline-block; width: 12px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 5px; }
+    .pts { display: flex; flex-direction: column; gap: 6px; }
+    .pts .row { display: flex; gap: 8px; align-items: center; font-size: 14px; flex-wrap: wrap; }
+    .chart svg .safety { fill: var(--bad); opacity: .08; }
+    .chart svg .now { fill: var(--accent); stroke: var(--card); stroke-width: 2; }
+    .chart svg .ref { fill: none; stroke: var(--muted); stroke-dasharray: 4 4; stroke-width: 1.5; }
+    .chart svg .cv { fill: none; stroke: var(--accent); stroke-width: 2.5; }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 8.8V6M12 18v-2.8M8.8 12H6M18 12h-2.8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <div><h1>NIDO Sistema</h1><p id="subtitle">Caricamento…</p></div>
+    </div>
+    <div id="status-pill" class="plant" hidden></div>
+  </header>
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="stato" aria-selected="true">Stato</button>
+    <button role="tab" data-tab="ventola" aria-selected="false">Ventola</button>
+    <button role="tab" data-tab="diario" aria-selected="false">Diario</button>
+  </nav>
+  <main>
+    <section id="tab-stato" class="tab">
+      <div id="banner"></div>
+      <div id="tiles" class="tiles"></div>
+      <div class="toolbar"><div class="seg" id="hours"><button data-h="6">6 ore</button><button class="on" data-h="24">24 ore</button><button data-h="168">7 giorni</button><button data-h="720">30 giorni</button></div></div>
+      <div class="card" style="margin-bottom:14px"><div class="card-head"><h2>Temperature</h2><div class="legend" id="leg-t"></div></div><div class="chart" id="ch-temp"></div></div>
+      <div class="card"><div class="card-head"><h2>Ventola e carico</h2><div class="legend" id="leg-f"></div></div><div class="chart" id="ch-fan"></div></div>
+    </section>
+    <section id="tab-ventola" class="tab" hidden>
+      <div id="fan-note"></div>
+      <div class="modes" id="modes"></div>
+      <div class="two" style="margin-top:14px">
+        <div class="card"><div class="card-head"><h2>Curva</h2><div class="legend"><span><i style="background:var(--accent)"></i>scelta</span><span><i style="background:var(--muted)"></i>firmware</span><span>● adesso</span></div></div><div class="chart" id="ch-curve"></div><p class="note" id="curve-note"></p></div>
+        <div class="card" id="fan-side"></div>
+      </div>
+    </section>
+    <section id="tab-diario" class="tab" hidden><div id="diary"></div></section>
+  </main>
+  <footer id="footer"></footer>
+  <div id="toast" hidden></div>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+configuration:
+  notifiche:
+    name: Notifiche
+    description: Servizi notify per gli avvisi (CPU calda, sottotensione, ventola ferma), es. mobile_app_iphone_di_simone
+  avviso_temperatura:
+    name: Avviso temperatura (°C)
+    description: Avvisa se la CPU resta sopra questa temperatura per più di 2 minuti
+  conserva_giorni:
+    name: Giorni di storico
+  pubblica_in_home_assistant:
+    name: Crea le entità in Home Assistant
+    description: Sensori, modalità della ventola e pulsante via MQTT (o sensori di lettura via REST senza MQTT)
+  debug:
+    name: Registro dettagliato
