@@ -4,6 +4,7 @@
  */
 import { existsSync, readFileSync, readdirSync, writeFileSync, statfsSync } from 'node:fs';
 import { join } from 'node:path';
+import { execFileSync } from 'node:child_process';
 
 const read = (p: string): string | null => { try { return readFileSync(p, 'utf8').trim(); } catch { return null; } };
 const num = (p: string): number | null => { const v = read(p); if (v == null || v === '') return null; const n = Number(v); return Number.isFinite(n) ? n : null; };
@@ -147,13 +148,34 @@ export class Hardware {
     if (avail.includes('user_space')) tries.push([policyP, 'user_space', 'user_space']);
     tries.push([modeP, 'disabled', 'disabled']);
     const errors: string[] = [];
-    for (const [path, value, method] of tries) {
-      try { writeFileSync(path, value); this.control = { method, writable: true, reason: null }; this.taken = true; return this.control; }
-      catch (e: any) { errors.push(`${path.replace(this.sys, '/sys')}: ${e?.code ?? e?.message ?? e}`); }
+    const attempt = () => {
+      for (const [path, value, method] of tries) {
+        try { writeFileSync(path, value); this.control = { method, writable: true, reason: null }; this.taken = true; return true; }
+        catch (e: any) { errors.push(`${path.replace(this.sys, '/sys')}: ${e?.code ?? e?.message ?? e}`); }
+      }
+      return false;
+    };
+    if (attempt()) return this.control;
+    // /sys montato in sola lettura: con l'accesso completo si può rimontare in scrittura
+    let remount = '';
+    if (errors.some(x => x.includes('EROFS')) && this.sys === '/sys') {
+      try { execFileSync('mount', ['-o', 'remount,rw', '/sys'], { stdio: 'pipe' }); remount = 'rimontato in scrittura'; if (attempt()) return this.control; }
+      catch (e: any) { remount = `rimontaggio non riuscito: ${String(e?.stderr ?? e?.message ?? e).trim().split('\n')[0]}`; }
     }
-    const denied = errors.some(x => /EROFS|EACCES|EPERM/.test(x));
-    this.control = { method: 'none', writable: false, reason: `${denied ? 'Il sistema non permette di scrivere in /sys: controlla che la Modalità protezione dell\'app sia disattivata e riavvia l\'app.' : 'Scrittura non riuscita.'} Dettaglio: ${errors.join('; ')}` };
+    const full = this.fullAccess();
+    const hint = full === false
+      ? 'L\'app gira senza accesso completo all\'hardware: disattiva la Modalità protezione nella scheda Informazioni dell\'app e riavviala.'
+      : 'L\'app ha l\'accesso completo ma il sistema non lascia comunque scrivere in /sys.';
+    this.control = { method: 'none', writable: false, reason: `${hint} Dettaglio: ${errors.join('; ')}${remount ? ` · /sys ${remount}` : ''}` };
     return this.control;
+  }
+
+  /** L'app ha tutti i privilegi (Modalità protezione disattivata)? Si capisce dalle capability del processo. */
+  fullAccess(): boolean | null {
+    const st = read(join(this.proc, 'self/status'));
+    const cap = st ? /^CapEff:\s+([0-9a-f]+)/m.exec(st)?.[1] : null;
+    if (!cap) return null;
+    return (BigInt('0x' + cap) & (1n << 21n)) !== 0n; // CAP_SYS_ADMIN
   }
 
   /** Restituisce la ventola al firmware/kernel. */

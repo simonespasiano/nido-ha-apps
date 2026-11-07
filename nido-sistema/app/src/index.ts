@@ -10,7 +10,7 @@ import { Engine, type Options } from './engine.js';
 import { Bridge } from './bridge.js';
 import { CURVES, MODE_HELP, MODE_LABEL, SAFETY_TEMP, type FanMode } from './fan.js';
 
-export const VERSION = '0.1.1';
+export const VERSION = '0.1.2';
 const DEMO = process.env.DEMO === '1';
 const DATA_DIR = process.env.DATA_DIR ?? '/data';
 const PORT = Number(process.env.PORT ?? 8099);
@@ -72,7 +72,7 @@ app.get('/api/overview', () => {
   const day = store.summary(Date.now() - 86400_000);
   return {
     version: VERSION, demo: DEMO, snap: s,
-    fan: { ...engine.settings, curve: engine.curve(), target: engine.target, boostUntil: engine.boostUntil, control: hw.control, inControl: hw.inControl, note: engine.controlNote, hasFan: hw.hasFan() },
+    fan: { ...engine.settings, curve: engine.curve(), target: engine.target, boostUntil: engine.boostUntil, control: hw.control, inControl: hw.inControl, fullAccess: hw.fullAccess(), note: engine.controlNote, hasFan: hw.hasFan() },
     modes: Object.keys(MODE_LABEL).map(k => ({ id: k, label: MODE_LABEL[k as FanMode], help: MODE_HELP[k as FanMode], curve: k === 'auto' ? null : k === 'personalizzata' ? engine.settings.custom : CURVES[k as keyof typeof CURVES] })),
     safety: SAFETY_TEMP, alertTemp: opts.avviso_temperatura,
     day: { cpuMin: day.cpuMin, cpuMax: day.cpuMax, cpuAvg: day.cpuAvg, fanAvg: day.fanAvg, ssdMax: day.ssdMax },

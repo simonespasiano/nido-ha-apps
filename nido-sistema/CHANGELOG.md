@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2
+
+- Se `/sys` è montato in sola lettura, l'app prova a rimontarlo in scrittura (possibile solo con l'accesso completo)
+- La diagnosi dice se l'app sta girando davvero con l'accesso completo (Modalità protezione disattivata)
+
 ## 0.1.1
 
 - Disattivato il profilo AppArmor dell'app: anche con l'accesso completo impediva di scrivere in `/sys`, quindi di comandare la ventola

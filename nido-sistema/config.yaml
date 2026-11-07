@@ -1,5 +1,5 @@
 name: NIDO Sistema
-version: "0.1.1"
+version: "0.1.2"
 slug: nido_sistema
 description: Raspberry Pi in chiaro - temperature di CPU, RP1 e SSD, ventola con curve e modalità, alimentazione, storico e avvisi
 url: https://github.com/simonespasiano/nido-ha-apps
