@@ -10,7 +10,7 @@ import { Engine, type Options } from './engine.js';
 import { Bridge } from './bridge.js';
 import { CURVES, MODE_HELP, MODE_LABEL, SAFETY_TEMP, type FanMode } from './fan.js';
 
-export const VERSION = '0.1.2';
+export const VERSION = '0.1.3';
 const DEMO = process.env.DEMO === '1';
 const DATA_DIR = process.env.DATA_DIR ?? '/data';
 const PORT = Number(process.env.PORT ?? 8099);
@@ -67,12 +67,25 @@ await bridge.start();
 const who = (req: IncomingMessage) => { const v = req.headers['x-remote-user-display-name'] ?? req.headers['x-remote-user-name']; return (Array.isArray(v) ? v[0] : v) ?? null; };
 const app = new MiniServer(join(here, '..', 'public'));
 
+// cosa sa il Supervisor di questa app (protezione, accesso completo), per la diagnosi
+let selfInfo = null as { protected?: boolean; full_access?: boolean; version?: string } | null;
+async function loadSelfInfo() {
+  if (!token) return;
+  try {
+    const r = await fetch('http://supervisor/addons/self/info', { headers: { Authorization: `Bearer ${token}` } });
+    const d: any = ((await r.json()) as any).data;
+    selfInfo = { protected: d?.protected, full_access: d?.full_access, version: d?.version };
+  } catch { /* non essenziale */ }
+}
+await loadSelfInfo();
+{ const si = selfInfo as { protected?: boolean; full_access?: boolean } | null; if (si) log(`Supervisor: modalità protezione ${si.protected ? 'ATTIVA' : 'disattivata'}, accesso completo richiesto ${si.full_access ? "sì" : "no"}`); }
+
 app.get('/api/overview', () => {
   const s = engine.last;
   const day = store.summary(Date.now() - 86400_000);
   return {
     version: VERSION, demo: DEMO, snap: s,
-    fan: { ...engine.settings, curve: engine.curve(), target: engine.target, boostUntil: engine.boostUntil, control: hw.control, inControl: hw.inControl, fullAccess: hw.fullAccess(), note: engine.controlNote, hasFan: hw.hasFan() },
+    fan: { ...engine.settings, curve: engine.curve(), target: engine.target, boostUntil: engine.boostUntil, control: hw.control, inControl: hw.inControl, fullAccess: hw.fullAccess(), supervisor: selfInfo, note: engine.controlNote, hasFan: hw.hasFan() },
     modes: Object.keys(MODE_LABEL).map(k => ({ id: k, label: MODE_LABEL[k as FanMode], help: MODE_HELP[k as FanMode], curve: k === 'auto' ? null : k === 'personalizzata' ? engine.settings.custom : CURVES[k as keyof typeof CURVES] })),
     safety: SAFETY_TEMP, alertTemp: opts.avviso_temperatura,
     day: { cpuMin: day.cpuMin, cpuMax: day.cpuMax, cpuAvg: day.cpuAvg, fanAvg: day.fanAvg, ssdMax: day.ssdMax },

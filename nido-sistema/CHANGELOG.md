@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3
+
+- La scheda Ventola mostra se per Home Assistant la Modalità protezione è attiva e se l'app ha davvero i permessi, per capire subito dove sta il blocco
+
 ## 0.1.2
 
 - Se `/sys` è montato in sola lettura, l'app prova a rimontarlo in scrittura (possibile solo con l'accesso completo)
