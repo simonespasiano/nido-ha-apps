@@ -10,9 +10,12 @@ import { DEFAULT_MODELS, Weather } from './weather.js';
 import { houseDashboard } from './house.js';
 import { HttpError, MiniServer } from './http.js';
 import type { DataSource } from './types.js';
+import { Feeder } from './feeder.js';
+import { Automations, LEVEL_LABEL, MODE_LABEL } from './automations.js';
+import { houseHumidity } from './humidity.js';
 import type { Action } from './controls.js';
 
-const VERSION = '0.6.0';
+const VERSION = '0.7.0';
 const here = dirname(fileURLToPath(import.meta.url));
 
 async function main() {
@@ -20,7 +23,7 @@ async function main() {
   const store = new Store(DATA_DIR);
   const log = (m: string) => console.log(`[nido-clima] ${m}`);
 
-  const startTs = Date.now() - 72 * 3_600_000;
+  const startTs = Date.now() - Number(process.env.DEMO_DAYS ?? 10) * 86_400_000;
   const src: DataSource = DEMO ? new DemoSource(startTs) : new HASource(opts, log);
   const engine = new Engine(src, store, {
     ...DEFAULT_DETECTOR,
@@ -36,7 +39,7 @@ async function main() {
   }
 
   if (DEMO && store.isEmpty()) {
-    log('Modalità demo: genero 72 ore di storico simulato…');
+    log('Modalità demo: genero lo storico simulato…');
     for (let t = startTs; t < Date.now(); t += 60_000) await engine.tick(t, false);
   }
   engine.log(`NIDO Clima ${VERSION} avviato${DEMO ? ' (demo)' : ''} — ${src.rooms().length} stanze`);
@@ -46,11 +49,36 @@ async function main() {
     () => !!opts.sensore_esterno, log, DEMO ? demoOutdoor : null);
   weather.start();
 
+  // temperatura e umidità esterne: sensore di casa se c'è, altrimenti osservazioni e previsioni meteo
+  const outdoorNow = () => {
+    const o = src.outdoorSensor?.();
+    if (o && o.temp != null) return { temp: o.temp, hum: o.hum };
+    const w = weather.nowValue(Date.now());
+    return { temp: w.temp, hum: w.hum };
+  };
+  const outdoorAtFactory = (from: number, to: number) => {
+    const rows = store.outdoor(from - 3_600_000, to + 3_600_000);
+    return (ts: number) => {
+      if (ts > Date.now() - 30 * 60_000) return outdoorNow();
+      let lo = 0, hi = rows.length - 1;
+      while (lo < hi) { const mid = (lo + hi) >> 1; if (rows[mid].ts < ts) lo = mid + 1; else hi = mid; }
+      const r = rows[lo] && Math.abs(rows[lo].ts - ts) < 2 * 3_600_000 ? rows[lo] : null;
+      return r ? { temp: r.temp, hum: r.hum } : outdoorNow();
+    };
+  };
+  const feeder = new Feeder(src, store, (m, room = null) => engine.log(m, room, 'automazione'));
+  const autos = new Automations(src, store, (m, room, kind = 'automazione') => engine.log(m, room, kind), outdoorNow);
+
   const tick = () => engine.tick()
     .then(() => { const o = src.outdoorSensor?.(); if (o && o.temp != null) weather.recordSensor(Date.now(), o.temp, o.hum); })
+    .then(() => autos.run(engine.views()))
     .catch(e => log(`Errore nel ciclo: ${e}`));
   await tick();
   setInterval(tick, opts.intervallo_secondi * 1000);
+  // la temperatura alla valvola va inviata più spesso del ciclo principale
+  const feed = () => feeder.run().catch(e => log(`Errore invio sensore esterno: ${e}`));
+  await feed();
+  setInterval(feed, 30_000);
   setInterval(() => store.prune(opts.conserva_giorni), 6 * 3_600_000);
 
   const app = new MiniServer(join(here, '..', 'public'));
@@ -153,6 +181,60 @@ async function main() {
     engine.log(`Storico e diario azzerati${withSettings ? ', soglie riportate ai valori della configurazione' : ''}${who ? ` — da ${who}` : ''}`);
     return store.counts();
   });
+
+  const who = (req: any) => { const w = req.headers['x-remote-user-display-name'] ?? req.headers['x-remote-user-name']; return (Array.isArray(w) ? w[0] : w) ?? null; };
+
+  // ── umidità ──
+  app.get('/api/humidity', (_p, q) => {
+    const days = Math.min(60, Math.max(2, Number(q.get('days') ?? 14)));
+    const now = Date.now();
+    const fc = weather.consensus(now, now + 26 * 3_600_000).map((c: any) => ({ ts: c.ts, temp: c.mean ?? null, hum: c.hum ?? null }));
+    return houseHumidity(store, src.rooms(), days, outdoorAtFactory(now - days * 86_400_000, now), fc, now);
+  });
+
+  // ── automazioni ──
+  app.get('/api/automations', async () => {
+    const house = autos.houseState();
+    return {
+      settings: autos.settings, house, decisions: autos.decisions, overrides: autos.overrides,
+      rooms: src.rooms().map(r => ({ id: r.id, name: r.name, auto: autos.roomAuto(r) })),
+      labels: { levels: LEVEL_LABEL, modes: MODE_LABEL },
+      people: src.people?.() ?? [], notify: await src.notifyServices?.() ?? [],
+    };
+  });
+  app.post('/api/automations', async (_p, _q, req, body) => {
+    try { autos.save(body ?? {}, who(req)); } catch (e) { throw new HttpError(400, e instanceof Error ? e.message : String(e)); }
+    await autos.run(engine.views()).catch(() => {});
+    return { ok: true, settings: autos.settings, decisions: autos.decisions };
+  });
+  app.post('/api/automations/override', async (_p, _q, req, body) => {
+    try { autos.setOverride(String(body?.room), body?.value == null ? null : Number(body.value), body?.hours ? Number(body.hours) : null, who(req)); }
+    catch (e) { throw new HttpError(400, e instanceof Error ? e.message : String(e)); }
+    await autos.run(engine.views()).catch(() => {});
+    return { ok: true, decisions: autos.decisions };
+  });
+
+  // ── valvole: tutte le impostazioni e il sensore esterno ──
+  app.get('/api/valves', () => ({
+    feed: feeder.settings,
+    valves: src.rooms().map(r => ({ room: r.id, name: r.name, controls: src.controls?.(r) ?? null, feed: feeder.view(r) })),
+  }));
+  app.post('/api/valves/feed', (_p, _q, req, body) => { feeder.save(body ?? {}, who(req)); return { ok: true, feed: feeder.settings }; });
+  app.post('/api/valves/bulk', async (_p, _q, req, body) => {
+    const key = String(body?.key ?? ''), value = body?.value;
+    if (!key || !src.controls || !src.act) throw new HttpError(400, 'Impostazione mancante');
+    const results: { room: string; ok: boolean; message: string }[] = [];
+    for (const r of src.rooms()) {
+      if (Array.isArray(body?.rooms) && !body.rooms.includes(r.id)) continue;
+      const d = src.controls(r).device.find(x => x.key === key);
+      if (!d) { results.push({ room: r.id, ok: false, message: 'non disponibile su questa valvola' }); continue; }
+      try { const m = await src.act(r, { action: 'entity', entity_id: d.entity_id, value }); engine.log(`${m} (applicato a tutte)${who(req) ? ` — da ${who(req)}` : ''}`, r.id, 'comando'); results.push({ room: r.id, ok: true, message: m }); }
+      catch (e) { results.push({ room: r.id, ok: false, message: e instanceof Error ? e.message : String(e) }); }
+    }
+    return { results };
+  });
+
+  if (DEMO) app.post('/api/demo/person', (_p, _q, _r, body) => { (src as DemoSource).setPerson(String(body?.id), !!body?.home); return { ok: true }; });
 
   app.get('/api/settings', () => ({
     soglia_accensione: engine.thresholds.global.onDelta,

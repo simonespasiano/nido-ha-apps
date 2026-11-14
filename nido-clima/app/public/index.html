@@ -21,6 +21,9 @@
   <nav class="tabs" role="tablist">
     <button role="tab" data-tab="casa" aria-selected="true">Casa</button>
     <button role="tab" data-tab="stanze" aria-selected="false">Stanze</button>
+    <button role="tab" data-tab="automazioni" aria-selected="false">Automazioni</button>
+    <button role="tab" data-tab="umidita" aria-selected="false">Umidità</button>
+    <button role="tab" data-tab="valvole" aria-selected="false">Valvole</button>
     <button role="tab" data-tab="diario">Diario</button>
     <button role="tab" data-tab="statistiche">Statistiche</button>
     <button role="tab" data-tab="dispositivi">Dispositivi</button>
@@ -36,9 +39,13 @@
         <span><i class="sw sw-room"></i>Stanza</span>
         <span><i class="sw sw-valve"></i>Termosifone (temperatura usata per il rilevamento ◉)</span>
         <span><i class="sw sw-set"></i>Obiettivo</span>
-        <span><i class="sw sw-heat"></i>Calorifero caldo</span>
+        <span><i class="sw sw-heat"></i>Calorifero caldo (o probabilmente caldo)</span>
       </p>
     </section>
+
+    <section id="tab-automazioni" class="tab" hidden><div id="automazioni"><p class="note">Caricamento…</p></div></section>
+    <section id="tab-umidita" class="tab" hidden><div id="umidita"><p class="note">Caricamento…</p></div></section>
+    <section id="tab-valvole" class="tab" hidden><div id="valvole"><p class="note">Caricamento…</p></div></section>
 
     <section id="tab-diario" class="tab" hidden>
       <div class="toolbar">
@@ -53,6 +60,8 @@
             <option value="finestra">Finestre</option>
             <option value="obiettivo">Obiettivi e modalità</option>
             <option value="comando">Comandi dati</option>
+            <option value="automazione">Automazioni</option>
+            <option value="umidita">Umidità</option>
             <option value="sistema">Sistema</option>
           </select>
         </label>
@@ -147,5 +156,8 @@
   <script src="zoom.js"></script>
   <script src="soglie.js"></script>
   <script src="casa.js"></script>
+  <script src="automazioni.js"></script>
+  <script src="umidita.js"></script>
+  <script src="valvole.js"></script>
 </body>
 </html>

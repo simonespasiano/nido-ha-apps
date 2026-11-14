@@ -156,3 +156,33 @@ export function plantState(statuses: RoomStatus[], now: number, prev?: PlantStat
     label: labels[state],
   };
 }
+
+/**
+ * Stato di una stanza la cui valvola usa il sensore esterno: la valvola misura la stanza, non il termosifone,
+ * quindi si sa solo se la stanza chiede calore. "Probabilmente caldo" quando chiede calore e la stanza si sta scaldando.
+ */
+export function demandStatus(recent: Sample[], current: Sample, prev?: RoomStatus): RoomStatus {
+  const now = current.ts;
+  const all = [...recent, current];
+  const slopeRoom = slope(all, 'tRoom', 30, now);
+  const sp = current.setpoint, t = current.tRoom;
+  const off = current.mode === 'off';
+  const wasReq = prev?.requesting ?? false;
+  const requesting = !off && sp != null && t != null && (wasReq ? t < sp + 0.1 : t < sp - 0.3);
+  const warming = slopeRoom != null && slopeRoom >= 0.3;
+  const heating = requesting && (prev?.heating ? (slopeRoom == null || slopeRoom > -0.1) : warming);
+  const window = slopeRoom != null && slopeRoom <= -2;
+  let reason: string;
+  if (off) reason = 'Riscaldamento spento sulla valvola';
+  else if (sp == null || t == null) reason = 'Dati incompleti';
+  else if (!requesting) reason = `Stanza in temperatura (${fmt(t)} su ${fmt(sp)} °C): la valvola resta chiusa`;
+  else if (heating) reason = `Chiede calore (${fmt(t)} su ${fmt(sp)} °C) e la stanza si scalda di ${fmt(slopeRoom ?? 0)} °C/ora: termosifone probabilmente caldo`;
+  else reason = `Chiede calore (${fmt(t)} su ${fmt(sp)} °C)${slopeRoom != null ? `, la stanza ${slopeRoom > 0.05 ? 'sale appena' : slopeRoom < -0.05 ? 'scende' : 'è ferma'} (${fmt(slopeRoom)} °C/ora)` : ''}`;
+  return {
+    heating, since: prev && prev.heating === heating ? prev.since : now,
+    delta: null, slopeValve: null, slopeRoom,
+    confidence: heating ? 'media' : 'bassa', reason, window, requesting,
+    requestingSince: requesting ? (prev?.requesting ? prev.requestingSince ?? now : now) : null,
+    basis: 'richiesta',
+  };
+}

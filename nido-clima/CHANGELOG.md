@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.7.0
+
+- **Sensore esterno gestito da NIDO**: le valvole passano su `external` e NIDO invia loro la temperatura del sensore della stanza a ogni variazione di 0,1 °C (al massimo ogni 30 secondi) e almeno ogni 5 minuti, con verifica che la valvola la riceva. Sostituisce le automazioni di Home Assistant, che vanno lasciate spente. Si può disattivare per tutte o per singola stanza dalla scheda **Valvole**
+- **Stato del riscaldamento con il sensore esterno**: la valvola misura la stanza, quindi l'app non indovina più "acceso/spento" dal termosifone. Mostra se la stanza **chiede calore**, se è **in temperatura** o se il termosifone è **probabilmente caldo** (chiede calore e la stanza si scalda). Con una sonda sul termosifone (`sensore_termosifone`) resta il rilevamento di prima
+- Nuova scheda **Automazioni**, un solo punto per tutto il riscaldamento:
+  - programmi orari per stanza (comfort, eco, notte) per Lun–Ven, sabato e domenica, con temperature proprie e copia fra stanze
+  - modalità della casa Automatica, Casa, Fuori, Notte, Vacanza (con data di fine): in Automatica la casa va su Fuori quando tutte le persone escono e torna al programma al primo rientro
+  - finestra aperta riconosciuta dal calo rapido della temperatura: valvola al minimo e ripristino quando la stanza smette di raffreddarsi
+  - umidità intelligente: mezzo grado in più quando le pareti rischiano la condensa, notifica per arieggiare dopo un picco o con umidità alta, solo se fuori l'aria è più secca
+  - interventi a mano: +1 °C per un'ora, obiettivo fino al prossimo cambio, ritorno al programma; un cambio fatto sulla ghiera della valvola viene rispettato fino al prossimo cambio
+- Nuova scheda **Umidità**: vapore in casa e fuori, punto di rugiada, umidità stimata sulle pareti e limite del giorno, tempo per fascia, giornata tipo feriali e festivi, **picchi che si ripetono** (doccia, cucina) con tempo di rientro, ore di rischio condensa, ore migliori per arieggiare e consigli
+- Nuova scheda **Valvole**: tutte le impostazioni di ogni valvola in una tabella, modificabili, con **Applica a tutte**
+- Diario: nuovi tipi Automazioni e Umidità
+
 ## 0.6.0
 
 - Nuova scheda **Casa** (si apre per prima): media della temperatura e dell'umidità di tutta la casa, andamento delle ultime 3 ore, confronto con ieri alla stessa ora, escursione fra le stanze, punto di rugiada e umidità assoluta

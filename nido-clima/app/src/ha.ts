@@ -203,7 +203,8 @@ export class HASource implements DataSource {
     if (!dev) return {};
     const own = entities.filter((e: any) => entityDevice.get(e.entity_id) === dev && !e.disabled_by);
     const mode = own.find((e: any) => e.entity_id.startsWith('select.') && /_sensor$/.test(e.entity_id))?.entity_id;
-    return { valveSensorMode: mode as string | undefined };
+    const input = own.find((e: any) => e.entity_id.startsWith('number.') && /external_temperature(_input)?$/.test(e.entity_id))?.entity_id;
+    return { valveSensorMode: mode as string | undefined, valveExtInput: input as string | undefined };
   }
 
   /**
@@ -271,6 +272,30 @@ export class HASource implements DataSource {
       service_data: call.data, target: { entity_id: call.entity_id },
     });
     return call.description;
+  }
+
+  async service(domain: string, service: string, entityId: string | null, data: Record<string, unknown>) {
+    await this.call({ type: 'call_service', domain, service, service_data: data, ...(entityId ? { target: { entity_id: entityId } } : {}) });
+  }
+
+  valveLink(room: Room) {
+    const sel = room.valveSensorMode ? this.states.get(room.valveSensorMode) : undefined;
+    const inp = room.valveExtInput ? this.states.get(room.valveExtInput) : undefined;
+    return {
+      select: room.valveSensorMode ?? null, input: room.valveExtInput ?? null,
+      mode: sel?.state ?? null, inputValue: num(inp?.state),
+      local: num(this.states.get(room.valve)?.attributes.current_temperature),
+    };
+  }
+
+  people() {
+    return [...this.states.values()].filter(s => s.entity_id.startsWith('person.'))
+      .map(s => ({ id: s.entity_id, name: s.attributes.friendly_name ?? s.entity_id, home: s.state === 'home' }));
+  }
+
+  async notifyServices(): Promise<string[]> {
+    try { const s = await this.call({ type: 'get_services' }); return Object.keys(s.notify ?? {}).filter(n => !['persistent_notification', 'send_message'].includes(n)).sort(); }
+    catch { return []; }
   }
 
   read(room: Room): Sample {

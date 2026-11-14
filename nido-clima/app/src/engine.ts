@@ -1,4 +1,4 @@
-import { detect, plantState, sanitizeDetector, type DetectorConfig } from './detector.js';
+import { demandStatus, detect, plantState, sanitizeDetector, type DetectorConfig } from './detector.js';
 import type { Store } from './db.js';
 import type { AppEvent, DataSource, PlantStatus, Room, RoomStatus, Sample } from './types.js';
 
@@ -85,14 +85,16 @@ export class Engine {
       const sample = this.src.read(room, now);
       const buf = (this.buffers.get(room.id) ?? []).filter(s => s.ts >= now - BUFFER_MIN * 60_000);
       const prev = this.statuses.get(room.id);
-      const status = detect(this.cfgFor(room.id), buf, sample, prev);
+      // con il sensore esterno la valvola misura la stanza: si ragiona sulla richiesta di calore
+      const byDemand = room.valveExternal && room.valveTempSource !== 'manuale';
+      const status = byDemand ? demandStatus(buf, sample, prev) : { ...detect(this.cfgFor(room.id), buf, sample, prev), basis: 'temperatura' as const };
       sample.heating = status.heating;
 
       // eventi leggibili per il diario
       if (prev && prev.heating !== status.heating) {
         this.log(status.heating
-          ? `Termosifone acceso — ${status.reason.charAt(0).toLowerCase()}${status.reason.slice(1)}`
-          : `Termosifone spento — ${status.reason.charAt(0).toLowerCase()}${status.reason.slice(1)}`,
+          ? `${byDemand ? 'Termosifone probabilmente caldo' : 'Termosifone acceso'} — ${status.reason.charAt(0).toLowerCase()}${status.reason.slice(1)}`
+          : `${byDemand ? 'Termosifone probabilmente freddo' : 'Termosifone spento'} — ${status.reason.charAt(0).toLowerCase()}${status.reason.slice(1)}`,
           room.id, status.heating ? 'calorifero_on' : 'calorifero_off', now);
       }
       if (status.window && !prev?.window && now - (this.lastWindowEvent.get(room.id) ?? 0) > 30 * 60_000) {

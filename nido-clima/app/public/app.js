@@ -107,8 +107,12 @@ async function loadRooms() {
   $('#rooms').innerHTML = overview.rooms.map((v, i) => {
     const s = v.sample || {}, st = v.status;
     const heat = st?.heating;
+    const byDemand = st?.basis === 'richiesta';
+    const label = byDemand
+      ? (heat ? '🔥 Probabilmente caldo' : st?.requesting ? 'Chiede calore' : 'In temperatura')
+      : (heat ? '🔥 Termosifone caldo' : st?.supplyHot ? 'Valvola chiusa · stanza in temperatura' : 'Termosifone freddo');
     const badges = [
-      `<span class="badge ${heat ? 'on' : st?.supplyHot ? 'warm' : ''}">${heat ? '🔥 Termosifone caldo' : st?.supplyHot ? 'Valvola chiusa · stanza in temperatura' : 'Termosifone freddo'}</span>`,
+      `<span class="badge ${heat ? 'on' : st?.supplyHot || (byDemand && st?.requesting) ? 'warm' : ''}">${label}</span>`,
       st?.window ? `<span class="badge win">Finestra aperta?</span>` : '',
     ].join('');
     const want = st?.requesting ? ' · chiede calore' : '';
@@ -123,11 +127,9 @@ async function loadRooms() {
         ${v.room.valveTempSource === 'manuale' ? tempFig('Sonda', s.tValve, true, 'Sonda indicata nella configurazione') : ''}
         </div>
       </div>
-      <p class="reason">${v.room.valveExternal && v.room.valveTempSource !== 'manuale'
-        ? '⚠ La valvola usa il sensore esterno: la sua temperatura è quella della stanza, quindi non si può capire se il termosifone scalda. Riportala su <i>internal</i> da Gestisci.'
-        : esc(st?.reason ?? '') + want}</p>
+      <p class="reason">${esc(st?.reason ?? '')}${byDemand ? '' : want}</p>
       <div class="chart-wrap" data-zoom="${esc(v.room.id)}" title="Tocca per ingrandire">${chart(histories[i])}<span class="zoom-hint">⤢ Ingrandisci</span></div>
-      <div class="meta"><span>Caldo oggi: <b>${dur(v.todayMinutes)}</b></span><span>${st ? (heat ? 'acceso ' : 'spento ') + ago(st.since) : ''} · affidabilità ${st?.confidence ?? '–'}</span></div>
+      <div class="meta"><span>Caldo oggi: <b>${dur(v.todayMinutes)}</b></span><span>${st ? (heat ? (byDemand ? 'probabilmente caldo ' : 'acceso ') : (byDemand ? (st.requesting ? 'chiede calore ' : 'in temperatura ') : 'spento ')) + ago(byDemand && st.requesting && !heat && st.requestingSince ? st.requestingSince : st.since) : ''}${byDemand ? ' · sensore esterno' : ` · affidabilità ${st?.confidence ?? '–'}`}</span></div>
       <div class="card-actions">
         ${s.mode === 'off' ? '<span class="badge">Riscaldamento spento</span>' : '<span></span>'}
         <button class="btn" data-manage="${esc(v.room.id)}">Gestisci</button>
@@ -146,7 +148,7 @@ function fillRoomSelect() {
 /* ---------- diario ---------- */
 const ICON = {
   calorifero_on: '🔥', calorifero_off: '❄️', comando: '👆', impianto_on: '🏢', impianto_off: '⏸️',
-  finestra: '🪟', obiettivo: '🎯', modalita: '⚙️', sistema: 'ℹ️',
+  finestra: '🪟', obiettivo: '🎯', modalita: '⚙️', sistema: 'ℹ️', automazione: '🤖', umidita: '💧',
 };
 async function loadEvents() {
   const room = $('#event-room').value, kind = $('#event-kind').value;
@@ -315,11 +317,11 @@ $('#manage').addEventListener('change', e => {
 });
 $('#manage').addEventListener('close', () => { managing = null; pendingTemp = null; });
 
-const loaders = { casa: () => window.loadCasa?.(), stanze: loadRooms, diario: loadEvents, statistiche: loadStats, dispositivi: loadEntities, soglie: () => window.loadThresholds?.() };
+const loaders = { casa: () => window.loadCasa?.(), stanze: loadRooms, automazioni: () => window.loadAutomazioni?.(), umidita: () => window.loadUmidita?.(), valvole: () => window.loadValvole?.(), diario: loadEvents, statistiche: loadStats, dispositivi: loadEntities, soglie: () => window.loadThresholds?.() };
 
 const refresh = () => {
   const active = document.querySelector('.tabs button[aria-selected="true"]').dataset.tab;
-  if (active !== 'dispositivi' && active !== 'soglie') loaders[active]().catch(err => { $('#subtitle').textContent = `Errore di collegamento (${err.message})`; });
+  if (!['dispositivi', 'soglie', 'automazioni', 'valvole', 'umidita'].includes(active)) loaders[active]().catch(err => { $('#subtitle').textContent = `Errore di collegamento (${err.message})`; });
 };
 loadRooms().then(() => window.loadCasa?.()).then(() => api('api/settings')).then(s => {
   $('#footer').textContent = `NIDO Clima ${overview.version} · soglie calorifero: acceso sopra +${n1(s.soglia_accensione)} °C, spento sotto +${n1(s.soglia_spegnimento)} °C · stanze ${s.stanze_manuali ? 'configurate a mano' : 'riconosciute dalle aree'}`;

@@ -186,7 +186,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .35); }
 .ctl .val { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .numset { display: flex; gap: 6px; align-items: center; }
 .numset input { width: 80px; font: inherit; padding: 5px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
-.toggle { position: relative; width: 44px; height: 26px; flex: none; }
+.toggle { position: relative; display: inline-block; width: 44px; height: 26px; flex: none; vertical-align: middle; }
 .toggle input { opacity: 0; width: 0; height: 0; }
 .toggle span { position: absolute; inset: 0; background: var(--line); border-radius: 999px; transition: .15s; cursor: pointer; }
 .toggle span::after { content: ''; position: absolute; left: 3px; top: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: .15s; box-shadow: 0 1px 2px rgba(0,0,0,.25); }
@@ -295,3 +295,49 @@ table.mini { font-size: 13px; }
 table.mini td, table.mini th { padding: 6px 10px; white-space: nowrap; }
 .sw-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
 .note.warn, span.warn { color: var(--warn); }
+
+/* ---------- 0.7: automazioni, umidità, valvole ---------- */
+.seg.wrap { flex-wrap: wrap; }
+.au-head h3, .au-rules h3, .au-edit h3, .hu-rooms h3 { font-size: 12px; color: var(--muted); font-weight: 600; margin: 12px 0 6px; text-transform: uppercase; letter-spacing: .4px; }
+.au-rooms, .hu-rooms { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; margin: 14px 0; }
+@media (max-width: 400px) { .au-rooms, .hu-rooms { grid-template-columns: 1fr; } }
+.au-rules, .hu-top { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+.au-room.off { opacity: .6; }
+.au-now { display: flex; align-items: center; gap: 12px; }
+.lvl { color: #fff; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
+.au-t b { font-size: 32px; font-weight: 400; font-variant-numeric: tabular-nums; }
+.au-t small { display: block; color: var(--muted); font-size: 12px; }
+.au-act { display: flex; flex-wrap: wrap; gap: 6px; }
+.au-edit { border-top: 1px solid var(--line); padding-top: 6px; }
+.au-temps { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; }
+.au-temps label { display: flex; flex-direction: column; font-size: 12px; color: var(--muted); gap: 3px; }
+.au-temps input, .blk input, .blk select, .f-row input, .check input[type=number], .vtable .num { font: inherit; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--ink); }
+.au-temps input { width: 100%; }
+.check input[type=number], .f-row input[type=number] { width: 70px; }
+.blocks { display: flex; flex-direction: column; gap: 6px; }
+.blk { display: flex; gap: 6px; align-items: center; }
+.tl { position: relative; height: 12px; border-radius: 6px; overflow: hidden; background: var(--bg); margin-top: 6px; }
+.tl i { position: absolute; top: 0; bottom: 0; }
+.tl b { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--ink); }
+.tl-h { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); }
+.f-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 14px; margin: 6px 0; }
+.check { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; margin: 6px 0; }
+.check small { display: block; color: var(--muted); font-size: 12px; }
+.au-bar { position: sticky; bottom: 0; display: flex; gap: 12px; align-items: center; padding: 12px 0; background: var(--bg); margin-top: 8px; }
+.btn.primary { background: var(--valve); border-color: var(--valve); color: #fff; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.warn-t { color: var(--warn); }
+.advice { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
+.hbands { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: var(--bg); }
+.hb-leg, .legend-inline { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: var(--muted); margin-top: 4px; text-transform: none; letter-spacing: 0; font-weight: 400; }
+.hb-leg i, .legend-inline i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
+.legend-inline i.dash { width: 14px; height: 0; border-top: 2px dashed; border-radius: 0; vertical-align: 3px; }
+.hchart, .spark { display: block; width: 100%; height: auto; }
+.spark { height: 44px; margin: 6px 0; }
+.hchart text { fill: var(--muted); font-size: 10px; }
+.hchart .grid { stroke: var(--line); }
+table.mini { font-size: 13px; }
+.vtable td small { display: block; color: var(--muted); font-size: 11px; }
+.vtable .num { width: 80px; }
+.vtable td.na { color: var(--muted); text-align: center; }
+.vtable tr.bulk td { background: var(--bg); }

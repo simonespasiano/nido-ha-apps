@@ -11,6 +11,7 @@ export interface Room {
   valveTempSensor?: string; // sensore indicato a mano per la temperatura del termosifone
   valveTempSource?: 'valvola' | 'manuale'; // da dove arriva, aggiornato a ogni lettura
   valveExternal?: boolean; // la valvola usa come sensore il sensore della stanza
+  valveExtInput?: string;  // number.* in cui scrivere la temperatura della stanza (sensore esterno)
   source: 'auto' | 'manuale' | 'demo';
 }
 
@@ -37,12 +38,14 @@ export interface RoomStatus {
   requesting: boolean;       // la stanza vorrebbe calore
   supplyHot?: boolean;       // valvola calda ma stanza già in temperatura: valvola chiusa, non conta come acceso
   requestingSince: number | null;
+  /** 'temperatura' = dal termosifone (valvola su internal o sonda); 'richiesta' = solo richiesta di calore (sensore esterno) */
+  basis?: 'temperatura' | 'richiesta';
 }
 
 export type EventKind =
   | 'calorifero_on' | 'calorifero_off'
   | 'finestra' | 'impianto_on' | 'impianto_off'
-  | 'obiettivo' | 'modalita' | 'comando' | 'sistema';
+  | 'obiettivo' | 'modalita' | 'comando' | 'sistema' | 'automazione' | 'umidita';
 
 export interface AppEvent {
   id?: number;
@@ -67,6 +70,20 @@ export interface DataSource {
   controls?(room: Room): RoomControls;
   /** Esegue un comando e restituisce la descrizione per il diario. */
   act?(room: Room, action: Action): Promise<string>;
+  /** Chiamata di servizio diretta (usata dalle automazioni e dall'invio del sensore esterno). */
+  service?(domain: string, service: string, entityId: string | null, data: Record<string, unknown>): Promise<void>;
+  /** Stato del collegamento valvola ↔ sensore della stanza. */
+  valveLink?(room: Room): ValveLink;
+  people?(): { id: string; name: string; home: boolean }[];
+  notifyServices?(): Promise<string[]>;
+}
+
+export interface ValveLink {
+  select: string | null;      // select.*_sensor
+  input: string | null;       // number.*_external_temperature_input
+  mode: string | null;        // internal / external
+  inputValue: number | null;  // ultimo valore ricevuto dalla valvola
+  local: number | null;       // temperatura che la valvola sta usando
 }
 
 export interface PlantStatus {

@@ -24,29 +24,60 @@ stanze:
     termostato: climate.clima_camera
 ```
 
-## Da dove arriva la temperatura del termosifone
+## Sensore esterno e stato del riscaldamento
 
-- Si usa la temperatura **misurata dalla valvola** (`current_temperature`), che con il sensore **interno** sta vicino al termosifone.
-- Con la valvola sul **sensore esterno** quella temperatura coincide con la stanza e non dice nulla del termosifone:
-  la scheda lo segnala e il rilevamento si ferma finché la valvola non torna su `internal`.
-- La temperatura del chip della valvola (`device_temperature`) **non viene usata né mostrata**: risente del calore dell'elettronica ed è fuorviante.
-- Per una stanza configurata a mano puoi indicare `sensore_termosifone`, ad esempio una sonda appoggiata al termosifone: ha la precedenza su tutto.
+Dalla 0.7.0 **NIDO invia alle valvole la temperatura del sensore della stanza**:
 
-## Come capisce che il termosifone scalda
+- imposta la valvola su `external` (entità *Sensore usato dalla valvola* di Zigbee2MQTT);
+- scrive la temperatura in *external_temperature_input* a ogni variazione di 0,1 °C (al massimo ogni 30 secondi) e comunque ogni 5 minuti;
+- controlla che la valvola la riceva (scheda **Valvole**, colonna *Stato*).
 
-La valvola misura la temperatura **attaccata al termosifone**, il sensore quella della **stanza**. L'app combina tre segnali:
+Così la valvola regola sulla temperatura vera della stanza e non su quella vicino al termosifone. **Le automazioni di Home Assistant che facevano lo stesso vanno lasciate spente**, altrimenti i due invii si sovrappongono.
 
-1. **Differenza valvola − stanza**: sopra `soglia_accensione` (predefinito 2,5 °C) il termosifone è caldo,
-   sotto `soglia_spegnimento` (1,2 °C) torna freddo. Le due soglie diverse evitano che lo stato cambi in continuazione.
-2. **Velocità della valvola**: se sale di oltre 4 °C/ora l'accensione viene riconosciuta prima; se scende di oltre 3 °C/ora
-   lo spegnimento viene riconosciuto prima.
-3. **Velocità della stanza**: un calo rapido (oltre 2 °C/ora, 1,5 con termosifone acceso) fa segnalare una **possibile finestra aperta**.
+Con il sensore esterno la valvola non misura più il termosifone, quindi la scheda della stanza mostra:
 
-Con il riscaldamento **centralizzato** l'app deduce anche lo stato dell'impianto:
+- **Chiede calore**: la stanza è sotto l'obiettivo;
+- **Probabilmente caldo**: chiede calore e la stanza si sta scaldando (almeno 0,3 °C/ora);
+- **In temperatura**: la valvola resta chiusa.
 
-- almeno un termosifone caldo → **impianto acceso**;
-- una stanza chiede calore da oltre 30 minuti ma nessun termosifone si scalda → **impianto probabilmente spento**;
-- nessuna richiesta → **a riposo**, cioè non determinabile.
+Per sapere davvero se il termosifone è caldo serve una sonda appoggiata al termosifone (`sensore_termosifone` nelle stanze configurate a mano): in quel caso torna il rilevamento con le soglie.
+
+L'invio si disattiva dalla scheda **Valvole**, per tutte le valvole o per una sola: quelle escluse tornano sul sensore interno.
+
+## Automazioni
+
+La scheda **Automazioni** sostituisce le automazioni sparse in Home Assistant: NIDO decide l'obiettivo di ogni valvola e lo scrive solo quando cambia. Si attiva con l'interruttore in alto; spenta, le valvole restano come sono.
+
+**L'obiettivo di una stanza** si calcola così, in ordine:
+
+1. il **programma orario** della stanza dà il livello (Comfort, Eco o Notte); ci sono programmi diversi per Lun–Ven, sabato e domenica;
+2. la **modalità della casa** può sostituirlo:
+   - *Fuori* usa la temperatura "fuori casa";
+   - *Vacanza* usa quella "vacanza", fino alla data scelta;
+   - *Notte* usa quella "notte";
+   - in *Automatica* la casa passa a Fuori quando tutte le persone (`person.*`) sono fuori da N minuti, e torna al programma al primo rientro;
+3. **umidità**: se le pareti più fredde superano l'80 % di umidità, mezzo grado in più (regolabile);
+4. **finestra aperta**: se la stanza scende di almeno 0,6 °C in 6 minuti, la valvola va a 7 °C e torna all'obiettivo quando la stanza smette di raffreddarsi;
+5. **interventi a mano**: *+1° per un'ora*, *Imposta…* fino al prossimo cambio di programma, *Torna al programma*. Anche un cambio fatto sulla ghiera della valvola o da un'altra app viene rispettato fino al prossimo cambio.
+
+Una valvola messa su **Spento** non viene riaccesa. Ogni decisione finisce nel **Diario** con il motivo.
+
+**Notifiche per arieggiare**: scegli i servizi notify nel riquadro Umidità intelligente. L'avviso arriva dopo un picco improvviso (es. +10 punti in pochi minuti dopo la doccia) o con umidità sopra la soglia da 30 minuti. Arriva solo se fuori l'aria contiene meno vapore che dentro e al massimo ogni 3 ore per stanza.
+
+## Umidità
+
+La scheda **Umidità** mostra, per la casa e per ogni stanza:
+
+- **vapore** (umidità assoluta) in casa e fuori: arieggiare serve solo se fuori ce n'è meno;
+- **punto di rugiada**, **umidità stimata sulle pareti** più fredde e **limite di oggi**, cioè l'umidità oltre cui, con il freddo di adesso, le pareti superano l'80 % (soglia della muffa). La parete è stimata con il fattore di temperatura 0,7 tipico di muri non isolati e angoli;
+- quanto tempo l'umidità è stata sotto il 40 %, fra 40 e 60, fra 60 e 70 e oltre il 70 %;
+- la **giornata tipo** (media per ora) dei giorni feriali e del fine settimana;
+- i **picchi** (almeno +7 punti in 20 minuti), con il tempo per tornare al valore di prima, e **cosa si ripete**: picchi alla stessa ora in almeno 3 giorni e in almeno il 30 % dei giorni (la doccia del mattino, la cucina la sera);
+- **consigli**: rischio condensa, picchi che rientrano lentamente, aria troppo secca, ore migliori per arieggiare nelle prossime 24 ore secondo le previsioni.
+
+## Valvole
+
+La scheda **Valvole** mette in una tabella tutte le funzioni di ogni valvola esposte da Zigbee2MQTT: blocco bambini, rilevamento finestra, controllo anomalie, temperatura in assenza, calibrazione, batteria, segnale. Si modificano direttamente; **Applica a tutte** copia un valore su tutte le valvole.
 
 ## Gestire valvole e termostati
 
