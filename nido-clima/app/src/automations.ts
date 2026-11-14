@@ -180,7 +180,11 @@ export class Automations {
   /** Persone considerate e modalità effettiva della casa. */
   houseState(now = Date.now()) {
     const s = this.settings;
-    const ppl = (this.src.people?.() ?? []).filter(p => !s.persons.length || s.persons.includes(p.id));
+    // contano solo le persone con una posizione nota: una persona senza dispositivo collegato (stato "unknown")
+    // o con il telefono non raggiungibile non deve far credere che la casa sia vuota
+    const all = (this.src.people?.() ?? []).filter(p => !s.persons.length || s.persons.includes(p.id));
+    const ppl = all.filter(p => p.state !== 'unknown' && p.state !== 'unavailable' && p.trackers > 0);
+    const ignored = all.filter(p => !ppl.includes(p));
     const empty = ppl.length > 0 && ppl.every(p => !p.home);
     if (empty) this.emptySince ??= now; else this.emptySince = null;
     let mode: Exclude<HouseMode, 'auto'>;
@@ -189,9 +193,10 @@ export class Automations {
     if (s.houseMode === 'auto') {
       const away = this.emptySince != null && now - this.emptySince >= s.awayDelayMin * 60_000;
       mode = away ? 'fuori' : 'casa';
-      why = !ppl.length ? 'nessuna persona in Home Assistant: si segue il programma' : away ? `tutti fuori da ${Math.round((now - this.emptySince!) / 60_000)} min` : empty ? `tutti fuori, Fuori tra ${Math.max(0, Math.ceil((s.awayDelayMin * 60_000 - (now - this.emptySince!)) / 60_000))} min` : `in casa: ${ppl.filter(p => p.home).map(p => p.name).join(', ')}`;
+      why = !ppl.length ? (all.length ? 'posizione delle persone sconosciuta: si segue il programma' : 'nessuna persona in Home Assistant: si segue il programma') : away ? `tutti fuori da ${Math.round((now - this.emptySince!) / 60_000)} min` : empty ? `tutti fuori, Fuori tra ${Math.max(0, Math.ceil((s.awayDelayMin * 60_000 - (now - this.emptySince!)) / 60_000))} min` : `in casa: ${ppl.filter(p => p.home).map(p => p.name).join(', ')}`;
     } else { mode = s.houseMode; why = 'scelta a mano'; }
-    return { mode, why, people: ppl, empty, emptySince: this.emptySince };
+    if (ignored.length) why += ` (ignorate: ${ignored.map(p => `${p.name} ${p.trackers ? 'posizione sconosciuta' : 'senza dispositivo'}`).join(', ')})`;
+    return { mode, why, people: ppl, ignored, empty, emptySince: this.emptySince };
   }
 
   /** Calcola e applica l'obiettivo di ogni stanza. Chiamato a ogni ciclo, dopo la lettura. */

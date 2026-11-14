@@ -41,7 +41,7 @@
         <h3>Modalità della casa</h3>
         <div class="seg wrap">${modes.map(m => `<button class="${s.houseMode === m ? 'on' : ''}" data-mode="${m}">${esc(L.modes[m])}</button>`).join('')}</div>
         ${s.houseMode === 'vacanza' ? `<div class="f-row"><label>Fino al <input type="date" data-vac value="${s.vacationUntil ? new Date(s.vacationUntil).toISOString().slice(0, 10) : ''}"></label><span class="note">poi torna automatica</span></div>` : ''}
-        <p class="note">Ora: <b>${esc(L.modes[h.mode])}</b> · ${esc(h.why)}${d.people.length ? ` · ${d.people.map(p => `${esc(p.name)} ${p.home ? '🏠' : '🚶'}`).join(' ')}` : ''}</p>
+        <p class="note">Ora: <b>${esc(L.modes[h.mode])}</b> · ${esc(h.why)}${d.people.length ? ` · ${d.people.map(p => `${esc(p.name)} ${p.state === 'home' ? '🏠' : ['unknown', 'unavailable'].includes(p.state) || !p.trackers ? '❔' : `🚶 (${esc(p.state)})`}`).join(' ')}` : ''}</p>
       </div>
 
       <div class="au-rooms">${d.rooms.map(r => {
@@ -73,7 +73,7 @@
           <div class="f-row"><label>Passa a Fuori dopo <input type="number" min="0" max="240" value="${s.awayDelayMin}" data-k="awayDelayMin"> minuti</label></div>
           <h3>Persone considerate</h3>
           <div class="chips">${d.people.length ? d.people.map(p => `<button class="chip ${!s.persons.length || s.persons.includes(p.id) ? 'on' : ''}" data-person="${p.id}">${esc(p.name)}</button>`).join('') : '<span class="note">Nessuna persona in Home Assistant</span>'}</div>
-          ${d.people.length ? '<p class="note">Nessuna selezionata = tutte.</p>' : ''}
+          ${d.people.length ? '<p class="note">Nessuna selezionata = tutte. Contano solo le persone con un dispositivo che ne indica la posizione (app di Home Assistant sul telefono): chi ha ❔ viene ignorato. Togli qui chi non vive in casa o non ha il telefono collegato.</p>' : ''}
         </div>
         <div class="card"><div class="card-head"><h2>🪟 Finestra aperta</h2><label class="toggle"><input type="checkbox" data-w="enabled" ${s.window.enabled ? 'checked' : ''}><span></span></label></div>
           <p class="note">Senza sensori sulle finestre: se la temperatura della stanza scende di colpo, la valvola va al minimo e torna all'obiettivo quando la stanza smette di raffreddarsi.</p>

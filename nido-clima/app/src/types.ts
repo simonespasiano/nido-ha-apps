@@ -74,7 +74,7 @@ export interface DataSource {
   service?(domain: string, service: string, entityId: string | null, data: Record<string, unknown>): Promise<void>;
   /** Stato del collegamento valvola ↔ sensore della stanza. */
   valveLink?(room: Room): ValveLink;
-  people?(): { id: string; name: string; home: boolean }[];
+  people?(): { id: string; name: string; home: boolean; state: string; trackers: number }[];
   notifyServices?(): Promise<string[]>;
 }
 

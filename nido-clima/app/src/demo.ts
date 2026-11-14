@@ -64,7 +64,7 @@ export class DemoSource implements DataSource {
   /** Persone simulate (in casa / fuori), comandabili dalla demo. */
   home = new Map<string, boolean>();
   setPerson(id: string, home: boolean) { if (this.home.has(id)) this.home.set(id, home); }
-  people() { return [...this.home].map(([id, home]) => ({ id, name: id === 'person.simone' ? 'Simone' : 'Giulia', home })); }
+  people() { return [...this.home].map(([id, home]) => ({ id, name: id === 'person.simone' ? 'Simone' : 'Giulia', home, state: home ? 'home' : 'not_home', trackers: 1 })); }
   async notifyServices() { return ['mobile_app_iphone_di_simone']; }
 
   async service(domain: string, service: string, entityId: string | null, data: Record<string, unknown>) {

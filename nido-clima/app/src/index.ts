@@ -15,7 +15,7 @@ import { Automations, LEVEL_LABEL, MODE_LABEL } from './automations.js';
 import { houseHumidity } from './humidity.js';
 import type { Action } from './controls.js';
 
-const VERSION = '0.7.0';
+const VERSION = '0.7.1';
 const here = dirname(fileURLToPath(import.meta.url));
 
 async function main() {

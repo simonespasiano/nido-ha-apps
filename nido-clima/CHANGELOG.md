@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.1
+
+- Presenza: le persone senza un dispositivo che ne indica la posizione, o con posizione sconosciuta, non vengono più contate come "fuori". Prima bastava una persona così per far credere che la casa fosse vuota
+- La scheda Automazioni mostra lo stato di ogni persona (🏠 in casa, 🚶 fuori, ❔ sconosciuta) e chi viene ignorato
+
 ## 0.7.0
 
 - **Sensore esterno gestito da NIDO**: le valvole passano su `external` e NIDO invia loro la temperatura del sensore della stanza a ogni variazione di 0,1 °C (al massimo ogni 30 secondi) e almeno ogni 5 minuti, con verifica che la valvola la riceva. Sostituisce le automazioni di Home Assistant, che vanno lasciate spente. Si può disattivare per tutte o per singola stanza dalla scheda **Valvole**
