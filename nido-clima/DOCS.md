@@ -64,6 +64,17 @@ Una valvola messa su **Spento** non viene riaccesa. Ogni decisione finisce nel *
 
 **Notifiche per arieggiare**: scegli i servizi notify nel riquadro Umidità intelligente. L'avviso arriva dopo un picco improvviso (es. +10 punti in pochi minuti dopo la doccia) o con umidità sopra la soglia da 30 minuti. Arriva solo se fuori l'aria contiene meno vapore che dentro e al massimo ogni 3 ore per stanza.
 
+## Chi cambia la temperatura
+
+NIDO ascolta i comandi `climate` che passano da Home Assistant e li confronta con i cambi di obiettivo che vede sulle valvole e sui termostati. Ogni cambio nel **Diario** riporta l'origine:
+
+- 👤 **persona**: dall'app o dalla dashboard di Home Assistant (con il nome della persona collegata all'utente) o dal pannello di NIDO
+- ⚙️ **automazione di HA**: un'automazione, uno script o una scena
+- 🏠 **NIDO**: programmi e regole della scheda Automazioni
+- 🔧 **sulla valvola**: manopola, app Aqara o Zigbee2MQTT. Qui il nome non c'è: alla valvola non arriva chi l'ha girata. Se usi il programma interno delle valvole, anche i suoi cambi finiscono qui
+
+In cima al Diario un riquadro riassume i cambi per origine, persona, stanza e ora del giorno.
+
 ## Umidità
 
 La scheda **Umidità** mostra, per la casa e per ogni stanza:

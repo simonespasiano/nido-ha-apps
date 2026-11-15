@@ -151,6 +151,7 @@ const ICON = {
   finestra: '🪟', obiettivo: '🎯', modalita: '⚙️', sistema: 'ℹ️', automazione: '🤖', umidita: '💧',
 };
 async function loadEvents() {
+  window.loadCambi?.().catch(() => {});
   const room = $('#event-room').value, kind = $('#event-kind').value;
   let evs = await api(`api/events?limit=400${room ? `&room=${room}` : ''}`);
   if (kind) evs = evs.filter(e => kind === 'obiettivo' ? ['obiettivo', 'modalita'].includes(e.kind) : e.kind.startsWith(kind));

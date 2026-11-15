@@ -1,4 +1,4 @@
-import type { AreaDiagnosis, DataSource, Diagnosis, EntityInfo, PlantStatus, Room, RoomStatus, Sample } from './types.js';
+import type { Attribution, AreaDiagnosis, DataSource, Diagnosis, EntityInfo, PlantStatus, Room, RoomStatus, Sample } from './types.js';
 import type { Options } from './config.js';
 import { buildCall, describeClimate, describeControl, type Action, type DeviceControl, type RoomControls } from './controls.js';
 
@@ -78,6 +78,7 @@ export class HASource implements DataSource {
             } catch { /* la posizione resta sconosciuta */ }
             states.forEach(s => this.states.set(s.entity_id, s));
             await this.call({ type: 'subscribe_events', event_type: 'state_changed' });
+            await this.call({ type: 'subscribe_events', event_type: 'call_service' }).catch(() => undefined);
             this.onLog('Collegato a Home Assistant');
             resolve();
           } catch (e) { reject(e); }
@@ -87,6 +88,8 @@ export class HASource implements DataSource {
             this.pending.delete(msg.id);
             msg.success ? p.resolve(msg.result) : p.reject(new Error(msg.error?.message ?? 'errore'));
           }
+        } else if (msg.type === 'event' && msg.event?.event_type === 'call_service') {
+          this.onServiceCall(msg.event);
         } else if (msg.type === 'event' && msg.event?.event_type === 'state_changed') {
           const ns: HAState | null = msg.event.data.new_state;
           if (ns) this.states.set(ns.entity_id, ns);
@@ -267,15 +270,56 @@ export class HASource implements DataSource {
 
   async act(room: Room, a: Action): Promise<string> {
     const call = buildCall(this.controls(room), a);
-    await this.call({
+    this.ownCmds.push({ entity: call.entity_id, ts: Date.now() });
+    if (this.ownCmds.length > 100) this.ownCmds.shift();
+    this.learnOwn(await this.call({
       type: 'call_service', domain: call.domain, service: call.service,
       service_data: call.data, target: { entity_id: call.entity_id },
-    });
+    }));
     return call.description;
   }
 
+  /** Comandi mandati da NIDO (per non attribuirli ad altri) e comandi climate fatti da utenti o automazioni. */
+  private ownUser: string | null = null;
+  private learnOwn(res: any) { const u = res?.context?.user_id; if (u) this.ownUser = u; }
+  private ownCmds: { entity: string; ts: number }[] = [];
+  private calls: { entities: string[]; ts: number; value: number | string | null; userId: string | null; automation: boolean; own: boolean }[] = [];
+
+  private onServiceCall(ev: any) {
+    const d = ev.data ?? {};
+    if (d.domain !== 'climate' || !['set_temperature', 'set_hvac_mode', 'set_preset_mode', 'turn_on', 'turn_off'].includes(d.service)) return;
+    const sd = d.service_data ?? {};
+    const ent = sd.entity_id;
+    const entities = (Array.isArray(ent) ? ent : ent ? [ent] : []).map(String);
+    const ctx = ev.context ?? {};
+    const own = !!this.ownUser && ctx.user_id === this.ownUser;
+    this.calls.push({ entities, ts: Date.now(), value: sd.temperature ?? sd.hvac_mode ?? null, userId: ctx.user_id ?? null, automation: !ctx.user_id && !!ctx.parent_id, own: !!own });
+    if (this.calls.length > 200) this.calls.splice(0, this.calls.length - 200);
+  }
+
+  private userName(userId: string): string {
+    const p = [...this.states.values()].find(s => s.entity_id.startsWith('person.') && s.attributes.user_id === userId);
+    return p?.attributes.friendly_name ?? 'un utente di Home Assistant';
+  }
+
+  attribute(room: Room, _value: number | string | null, now: number): Attribution {
+    const ents = [room.valve, room.thermostat].filter(Boolean) as string[];
+    const recent = (ts: number) => now - ts < 6 * 60_000 && ts <= now + 5_000;
+    const c = [...this.calls].reverse().find(x => recent(x.ts) && x.entities.some(e => ents.includes(e)));
+    const own = [...this.ownCmds].reverse().find(x => recent(x.ts) && ents.includes(x.entity));
+    // il comando più recente vince; quello di NIDO si riconosce perché parte un attimo prima del suo evento
+    if (own && (!c || c.own || Math.abs(c.ts - own.ts) < 5_000 || own.ts > c.ts)) return { origin: 'nido' as const, who: 'NIDO' };
+    if (c) {
+      if (c.own) return { origin: 'nido' as const, who: 'NIDO' };
+      if (c.userId) return { origin: 'utente' as const, who: this.userName(c.userId) };
+      return { origin: 'automazione' as const, who: c.automation ? 'automazione di Home Assistant' : 'Home Assistant' };
+    }
+    return { origin: 'valvola' as const, who: 'sulla valvola' };
+  }
+
   async service(domain: string, service: string, entityId: string | null, data: Record<string, unknown>) {
-    await this.call({ type: 'call_service', domain, service, service_data: data, ...(entityId ? { target: { entity_id: entityId } } : {}) });
+    if (entityId) { this.ownCmds.push({ entity: entityId, ts: Date.now() }); if (this.ownCmds.length > 100) this.ownCmds.shift(); }
+    this.learnOwn(await this.call({ type: 'call_service', domain, service, service_data: data, ...(entityId ? { target: { entity_id: entityId } } : {}) }));
   }
 
   valveLink(room: Room) {

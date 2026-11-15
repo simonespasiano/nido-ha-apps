@@ -53,7 +53,13 @@ export interface AppEvent {
   room: string | null;
   kind: EventKind;
   message: string;
+  /** Per i cambi di obiettivo: chi l'ha fatto. 'nido' | 'valvola' | 'utente' | 'automazione' */
+  origin?: ChangeOrigin | null;
+  who?: string | null;
 }
+
+export type ChangeOrigin = 'nido' | 'valvola' | 'utente' | 'automazione' | 'programma';
+export interface Attribution { origin: ChangeOrigin; who: string | null; via?: string }
 
 export interface DataSource {
   start(): Promise<void>;
@@ -74,6 +80,8 @@ export interface DataSource {
   service?(domain: string, service: string, entityId: string | null, data: Record<string, unknown>): Promise<void>;
   /** Stato del collegamento valvola ↔ sensore della stanza. */
   valveLink?(room: Room): ValveLink;
+  /** Chi ha cambiato da poco l'obiettivo (o la modalità) di una stanza. */
+  attribute?(room: Room, value: number | string | null, now: number): Attribution;
   people?(): { id: string; name: string; home: boolean; state: string; trackers: number }[];
   notifyServices?(): Promise<string[]>;
 }

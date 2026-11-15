@@ -15,7 +15,7 @@ import { Automations, LEVEL_LABEL, MODE_LABEL } from './automations.js';
 import { houseHumidity } from './humidity.js';
 import type { Action } from './controls.js';
 
-const VERSION = '0.7.1';
+const VERSION = "0.7.2";
 const here = dirname(fileURLToPath(import.meta.url));
 
 async function main() {
@@ -130,6 +130,7 @@ async function main() {
     catch (err) { throw new HttpError(400, err instanceof Error ? err.message : String(err)); }
     // l'ingress di Home Assistant indica chi sta usando il pannello
     const who = req.headers['x-remote-user-display-name'] ?? req.headers['x-remote-user-name'];
+    engine.panelCommand(room.id, Array.isArray(who) ? who[0] : who ?? null);
     engine.log(`${description}${who ? ` — da ${who}` : ''}`, room.id, 'comando');
     return { ok: true, message: description };
   });
@@ -184,6 +185,34 @@ async function main() {
 
   const who = (req: any) => { const w = req.headers['x-remote-user-display-name'] ?? req.headers['x-remote-user-name']; return (Array.isArray(w) ? w[0] : w) ?? null; };
 
+  // ── chi cambia la temperatura ──
+  app.get('/api/changes', (_p, q) => {
+    const days = Math.min(60, Math.max(1, Number(q.get('days') ?? 14)));
+    const since = Date.now() - days * 86_400_000;
+    const names = new Map(src.rooms().map(r => [r.id, r.name]));
+    const ev = store.events(5000, undefined, since).filter(e => (e.kind === 'obiettivo' || e.kind === 'modalita') && e.origin);
+    const origins = ['utente', 'valvola', 'automazione', 'nido', 'programma'] as const;
+    const zero = () => Object.fromEntries(origins.map(o => [o, 0])) as Record<string, number>;
+    const byOrigin = zero();
+    const byRoom = new Map<string, Record<string, number>>();
+    const byWho = new Map<string, number>();
+    const byHour = Array.from({ length: 24 }, () => 0);
+    for (const e of ev) {
+      byOrigin[e.origin!]++;
+      if (e.room) { const r = byRoom.get(e.room) ?? zero(); r[e.origin!]++; byRoom.set(e.room, r); }
+      if (e.origin === 'nido' || e.origin === 'programma') continue;
+      const k = e.origin === 'utente' ? e.who ?? 'utente' : e.origin === 'valvola' ? 'Sulla valvola' : 'Automazioni di HA';
+      byWho.set(k, (byWho.get(k) ?? 0) + 1);
+      byHour[new Date(e.ts).getHours()]++;
+    }
+    return {
+      days, total: ev.length, byOrigin, byHour,
+      byWho: [...byWho].map(([who, n]) => ({ who, n })).sort((a, b) => b.n - a.n),
+      byRoom: [...byRoom].map(([room, c]) => ({ room, name: names.get(room) ?? room, ...c })),
+      list: ev.filter(e => e.origin !== 'nido' && e.origin !== 'programma').slice(0, 60).map(e => ({ ...e, roomName: e.room ? names.get(e.room) ?? e.room : null })),
+    };
+  });
+
   // ── umidità ──
   app.get('/api/humidity', (_p, q) => {
     const days = Math.min(60, Math.max(2, Number(q.get('days') ?? 14)));
@@ -208,6 +237,7 @@ async function main() {
     return { ok: true, settings: autos.settings, decisions: autos.decisions };
   });
   app.post('/api/automations/override', async (_p, _q, req, body) => {
+    engine.panelCommand(String(body?.room), who(req));
     try { autos.setOverride(String(body?.room), body?.value == null ? null : Number(body.value), body?.hours ? Number(body.hours) : null, who(req)); }
     catch (e) { throw new HttpError(400, e instanceof Error ? e.message : String(e)); }
     await autos.run(engine.views()).catch(() => {});

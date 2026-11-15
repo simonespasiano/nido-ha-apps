@@ -1,6 +1,6 @@
 import { demandStatus, detect, plantState, sanitizeDetector, type DetectorConfig } from './detector.js';
 import type { Store } from './db.js';
-import type { AppEvent, DataSource, PlantStatus, Room, RoomStatus, Sample } from './types.js';
+import type { AppEvent, Attribution, DataSource, PlantStatus, Room, RoomStatus, Sample } from './types.js';
 
 const fmt = (n: number) => n.toFixed(1).replace('.', ',');
 const BUFFER_MIN = 40;
@@ -75,8 +75,19 @@ export class Engine {
     return this.thresholds;
   }
 
-  log(message: string, room: string | null = null, kind: AppEvent['kind'] = 'sistema', ts = Date.now()) {
-    this.store.insertEvent({ ts, room, kind, message });
+  /** Comandi dati dal pannello di NIDO: chi li ha dati, per stanza. */
+  private panel = new Map<string, { ts: number; who: string }>();
+  panelCommand(room: string, who: string | null) { if (who) this.panel.set(room, { ts: Date.now(), who }); }
+  private attribute(room: Room, value: number | string | null, now: number): Attribution | undefined {
+    const by = this.src.attribute?.(room, value, now);
+    const p = this.panel.get(room.id);
+    if (by?.origin === 'nido' && p && now - p.ts < 6 * 60_000) return { origin: 'utente', who: p.who, via: 'dal pannello NIDO' };
+    if (by?.origin === 'utente') return { ...by, via: 'da Home Assistant' };
+    return by;
+  }
+
+  log(message: string, room: string | null = null, kind: AppEvent['kind'] = 'sistema', ts = Date.now(), by?: Attribution) {
+    this.store.insertEvent({ ts, room, kind, message, origin: by?.origin ?? null, who: by?.who ?? null });
   }
 
   async tick(now = Date.now(), publish = true) {
@@ -103,10 +114,12 @@ export class Engine {
       }
       const last = this.lastSamples.get(room.id);
       if (last?.setpoint != null && sample.setpoint != null && Math.abs(last.setpoint - sample.setpoint) >= 0.1) {
-        this.log(`Obiettivo da ${fmt(last.setpoint)} a ${fmt(sample.setpoint)} °C`, room.id, 'obiettivo', now);
+        const by = this.attribute(room, sample.setpoint, now);
+        this.log(`Obiettivo da ${fmt(last.setpoint)} a ${fmt(sample.setpoint)} °C${by ? ` · ${byText(by)}` : ''}`, room.id, 'obiettivo', now, by);
       }
       if (last?.mode && sample.mode && last.mode !== sample.mode) {
-        this.log(`Modalità cambiata: ${last.mode} → ${sample.mode}`, room.id, 'modalita', now);
+        const by = this.attribute(room, sample.mode, now);
+        this.log(`Modalità cambiata: ${last.mode} → ${sample.mode}${by ? ` · ${byText(by)}` : ''}`, room.id, 'modalita', now, by);
       }
 
       buf.push(sample);
@@ -226,4 +239,14 @@ export function simulate(store: Store, room: Room, cfg: DetectorConfig, from: nu
     // distribuzione della differenza valvola−stanza: aiuta a scegliere le soglie
     delta: { min: pct(0), p50: pct(0.5), p90: pct(0.9), max: pct(0.999) },
   };
+}
+
+export function byText(by: Attribution): string {
+  switch (by.origin) {
+    case 'nido': return 'da NIDO';
+    case 'programma': return 'dal programma della valvola';
+    case 'utente': return `da ${by.who}${by.via ? ` ${by.via}` : ''}`;
+    case 'automazione': return `da un'${by.who}`;
+    default: return by.who && by.who !== 'sulla valvola' ? `da ${by.who}` : 'sulla valvola (manopola, app Aqara o Zigbee2MQTT)';
+  }
 }

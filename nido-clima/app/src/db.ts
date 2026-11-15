@@ -63,12 +63,23 @@ export class Store {
     return out;
   }
 
+  private eventCols = false;
+  private ensureEventCols() {
+    if (this.eventCols) return;
+    const cols = (this.db.prepare(`PRAGMA table_info(events)`).all() as any[]).map(c => c.name);
+    if (!cols.includes('origin')) this.db.exec(`ALTER TABLE events ADD COLUMN origin TEXT`);
+    if (!cols.includes('who')) this.db.exec(`ALTER TABLE events ADD COLUMN who TEXT`);
+    this.eventCols = true;
+  }
+
   insertEvent(e: AppEvent) {
-    this.db.prepare(`INSERT INTO events (ts, room, kind, message) VALUES (?, ?, ?, ?)`)
-      .run(e.ts, e.room, e.kind, e.message);
+    this.ensureEventCols();
+    this.db.prepare(`INSERT INTO events (ts, room, kind, message, origin, who) VALUES (?, ?, ?, ?, ?, ?)`)
+      .run(e.ts, e.room, e.kind, e.message, e.origin ?? null, e.who ?? null);
   }
 
   events(limit = 200, room?: string, since = 0, until = Number.MAX_SAFE_INTEGER): AppEvent[] {
+    this.ensureEventCols();
     const sql = room
       ? `SELECT * FROM events WHERE room = ? AND ts >= ? AND ts <= ? ORDER BY ts DESC LIMIT ?`
       : `SELECT * FROM events WHERE ts >= ? AND ts <= ? ORDER BY ts DESC LIMIT ?`;

@@ -341,3 +341,9 @@ table.mini { font-size: 13px; }
 .vtable .num { width: 80px; }
 .vtable td.na { color: var(--muted); text-align: center; }
 .vtable tr.bulk td { background: var(--bg); }
+
+/* 0.7.2 — chi cambia la temperatura */
+.cb-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 12px; }
+.cb-cols h3 { margin: 0 0 6px; }
+.cb-hours { display: flex; align-items: flex-end; gap: 2px; height: 70px; border-bottom: 1px solid var(--line, #8884); }
+.cb-hours i { flex: 1; background: var(--c1); border-radius: 2px 2px 0 0; min-height: 1px; }

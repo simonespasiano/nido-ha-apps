@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.2
+
+- **Chi cambia la temperatura**: ogni cambio di obiettivo o di modalità nel Diario indica chi l'ha fatto: una persona da Home Assistant (app, dashboard, assistente vocale) con il suo nome, una persona dal pannello di NIDO, un'automazione o uno script di HA, NIDO stesso, oppure **sulla valvola** (manopola, app Aqara, Zigbee2MQTT)
+- In cima al Diario un riquadro riassume gli ultimi 7, 14 o 30 giorni: quanti cambi per origine, chi li fa, in quali stanze e a che ora
+- Le modifiche fatte direttamente sulla valvola non portano un nome: Home Assistant non sa chi ha girato la manopola
+
 ## 0.7.1
 
 - Presenza: le persone senza un dispositivo che ne indica la posizione, o con posizione sconosciuta, non vengono più contate come "fuori". Prima bastava una persona così per far credere che la casa fosse vuota

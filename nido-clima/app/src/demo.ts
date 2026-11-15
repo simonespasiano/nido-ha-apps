@@ -1,4 +1,4 @@
-import type { DataSource, EntityInfo, Room, Sample } from './types.js';
+import type { Attribution, DataSource, EntityInfo, Room, Sample } from './types.js';
 import { buildCall, type Action, type DeviceControl, type RoomControls } from './controls.js';
 
 /**
@@ -14,7 +14,7 @@ interface SimRoom {
   windowAt?: [number, number]; // minuti del giorno in cui la finestra resta aperta
   mode: 'heat' | 'off';
   preset: string;
-  manual?: { value: number; scheduled: number }; // obiettivo manuale finché il programma non cambia
+  manual?: { value: number; scheduled: number; expire?: boolean }; // obiettivo manuale (expire: finché il programma non cambia)
   device: Record<string, string>;
   hum: number;        // umidità simulata
 }
@@ -24,6 +24,7 @@ const plantOn = (ts: number) => { const m = minuteOfDay(ts); return (m >= 360 &&
 function setpoint(r: SimRoom, ts: number) {
   const sch = scheduled(r, ts);
   // un obiettivo impostato da un comando resta finché non ne arriva un altro (come una valvola vera)
+  if (r.manual?.expire && r.manual.scheduled !== sch) r.manual = undefined;
   if (r.manual) return r.manual.value;
   return sch;
 }
@@ -91,8 +92,33 @@ export class DemoSource implements DataSource {
   location() { return { lat: 45.5306, lon: 9.2789, name: 'Cologno Monzese (demo)' }; }
   rooms() { return this.sims.map(s => s.room); }
 
+  /** Chi ha cambiato l'obiettivo per ultimo, per stanza. */
+  private changes = new Map<string, { ts: number; by: Attribution }>();
+
+  /** Ogni tanto qualcuno ritocca la temperatura: dall'app di HA, con un'automazione o girando la manopola. */
+  private twist(sim: SimRoom, t: number) {
+    const m = minuteOfDay(t), day = Math.floor((t + 3_600_000) / 86_400_000), id = sim.room.id;
+    const set = (delta: number, by: Attribution) => {
+      const sch = scheduled(sim, t);
+      sim.manual = { value: setpoint(sim, t) + delta, scheduled: sch, expire: true };
+      this.changes.set(id, { ts: t, by });
+    };
+    if (id === 'soggiorno' && m === 1290 && day % 3 === 0) set(1, { origin: 'utente', who: 'Giulia' });
+    if (id === 'soggiorno' && m === 1110 && day % 4 === 1) set(0.5, { origin: 'utente', who: 'Simone' });
+    if (id === 'camera' && m === 1350 && day % 2 === 0) set(-1, { origin: 'valvola', who: 'sulla valvola' });
+    if (id === 'cameretta' && m === 1215 && day % 3 !== 2) set(1.5, { origin: 'valvola', who: 'sulla valvola' });
+    if (id === 'bagno' && m === 430 && day % 5 === 0) set(1, { origin: 'automazione', who: 'automazione di Home Assistant' });
+  }
+
+  attribute(room: Room, _value: number | string | null, now: number): Attribution {
+    const c = this.changes.get(room.id);
+    if (c && now - c.ts < 6 * 60_000 && c.ts <= now) return c.by;
+    return { origin: 'programma', who: 'programma della valvola' };
+  }
+
   private step(sim: SimRoom, to: number) {
     for (let t = sim.lastTs + 60_000; t <= to; t += 60_000) {
+      this.twist(sim, t);
       const sp = setpoint(sim, t);
       if (sim.tRoom < sp - 0.2) sim.open = true;
       else if (sim.tRoom > sp + 0.2) sim.open = false;
@@ -180,6 +206,7 @@ export class DemoSource implements DataSource {
     const sim = this.sim(room);
     const call = buildCall(this.controls(room), a);
     const now = Date.now();
+    if (call.domain === 'climate') this.changes.set(room.id, { ts: now, by: { origin: 'nido', who: 'NIDO' } });
     if (call.service === 'set_temperature') sim.manual = { value: call.data.temperature as number, scheduled: scheduled(sim, now) };
     else if (call.service === 'set_hvac_mode') sim.mode = call.data.hvac_mode as 'heat' | 'off';
     else if (call.service === 'set_preset_mode') {
