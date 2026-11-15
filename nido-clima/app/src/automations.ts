@@ -168,7 +168,9 @@ export class Automations {
   setOverride(roomId: string, value: number | null, hours: number | null, user: string | null) {
     const room = this.src.rooms().find(r => r.id === roomId);
     if (!room) throw new Error('Stanza non trovata');
-    if (value == null) { delete this.overrides[roomId]; this.log(`Intervento manuale annullato: si torna al programma${user ? ` — da ${user}` : ''}`, roomId); }
+    // senza dimenticare l'ultimo valore applicato, il controllo "cambiato sulla valvola" rivedrebbe subito
+    // l'obiettivo manuale ancora presente sulla valvola e ricreerebbe l'intervento appena annullato
+    if (value == null) { delete this.overrides[roomId]; this.applied.delete(roomId); this.log(`Intervento manuale annullato: si torna al programma${user ? ` — da ${user}` : ''}`, roomId); }
     else {
       const until = hours ? Date.now() + hours * 3_600_000 : scheduleAt(this.roomAuto(room), Date.now()).next;
       this.overrides[roomId] = { value: clampT(value, 20), until, source: hours ? 'boost' : 'pannello' };
@@ -236,7 +238,7 @@ export class Automations {
 
       // intervento a mano
       let ov: Override | null = this.overrides[room.id] ?? null;
-      if (ov && now > ov.until) { delete this.overrides[room.id]; this.store.setSetting('override', this.overrides); this.log('Fine dell\'intervento manuale: si torna al programma', room.id); ov = null; }
+      if (ov && now > ov.until) { delete this.overrides[room.id]; this.applied.delete(room.id); this.store.setSetting('override', this.overrides); this.log('Fine dell\'intervento manuale: si torna al programma', room.id); ov = null; }
       // cambio fatto sulla valvola (ghiera o app): lo si rispetta fino al prossimo cambio di programma
       const ap = this.applied.get(room.id);
       if (s.enabled && ra.enabled && sample?.setpoint != null && ap && now - ap.ts > 3 * 60_000 && Math.abs(sample.setpoint - ap.value) >= 0.5 && !win

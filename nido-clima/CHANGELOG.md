@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.3
+
+- **Torna al programma** ora funziona anche dopo un cambio fatto sulla valvola o dall'app di Home Assistant: prima NIDO rivedeva subito l'obiettivo manuale ancora impostato sulla valvola e ricreava l'intervento appena annullato
+- Stesso problema alla fine naturale di un intervento a mano: la valvola tornava al programma solo al cambio successivo
+
 ## 0.7.2
 
 - **Chi cambia la temperatura**: ogni cambio di obiettivo o di modalità nel Diario indica chi l'ha fatto: una persona da Home Assistant (app, dashboard, assistente vocale) con il suo nome, una persona dal pannello di NIDO, un'automazione o uno script di HA, NIDO stesso, oppure **sulla valvola** (manopola, app Aqara, Zigbee2MQTT)
