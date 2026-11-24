@@ -14,8 +14,9 @@ import { statistics } from './stats.js';
 import { FAN, MOP_STRENGTH, ROUTE, WATER, WORK_MODE, type RobotMap } from './protocol.js';
 import type { PB } from './pb.js';
 import { sanitizeProgram } from './programs.js';
+import { setupPlancia } from './plancia.js';
 
-export const VERSION = '0.1.1';
+export const VERSION = '0.2.0';
 const here = dirname(fileURLToPath(import.meta.url));
 const opts = loadOptions();
 const store = new Store(DATA_DIR);
@@ -204,5 +205,10 @@ if (DEMO) {
 
 await app.listen(PORT);
 log(`Interfaccia su http://localhost:${PORT}`);
+
+// plancia di Home Assistant con l'app a tutto schermo (si può scegliere come pagina iniziale)
+if (!DEMO && opts.plancia !== false)
+  setupPlancia({ addon: 'nido_pulizie', urlPath: 'nido-pulizie', title: 'NIDO Pulizie', icon: 'mdi:robot-vacuum',
+    cardDir: join(here, '..', 'plancia'), log }).catch(e => log(`Plancia: ${e}`));
 
 process.on('SIGTERM', () => { client.stop(); sim?.close(); process.exit(0); });

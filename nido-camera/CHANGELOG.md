@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.0
+
+- **Plancia NIDO Camera**: all'avvio l'app crea la plancia *NIDO Camera* con l'app a tutto schermo. Si può scegliere come **pagina iniziale** di Home Assistant e riordinare come le altre plance; l'accesso resta protetto come nel pannello laterale. Si disattiva con la nuova opzione `plancia`
+- L'app ora può scrivere nella cartella di configurazione di Home Assistant (solo `www/nido/`, per la scheda delle plance)
+
 ## 0.1.1
 
 - L'app usa la rete dell'host: la camera HomeKit manda il video in UDP all'indirizzo di go2rtc e la si trova via mDNS, cose che dalla rete interna dei container non funzionano. Era la causa più probabile della diretta che non parte

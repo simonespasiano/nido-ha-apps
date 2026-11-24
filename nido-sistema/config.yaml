@@ -1,5 +1,5 @@
 name: NIDO Sistema
-version: "0.2.1"
+version: "0.3.0"
 slug: nido_sistema
 description: Raspberry Pi in chiaro - temperature di CPU, RP1 e SSD, ventola con curve e modalità, alimentazione, storico e avvisi
 url: https://github.com/simonespasiano/nido-ha-apps
@@ -15,6 +15,8 @@ host_network: true
 panel_icon: mdi:raspberry-pi
 panel_title: NIDO Sistema
 homeassistant_api: true
+map:
+  - homeassistant_config:rw
 hassio_api: true
 # Home Assistant monta /sys in sola lettura in tutte le app; con SYS_ADMIN l'app monta un secondo
 # sysfs in scrittura solo per la ventola. Il profilo AppArmor predefinito vieterebbe il montaggio.
@@ -24,12 +26,14 @@ apparmor: false
 services:
   - mqtt:want
 options:
+  plancia: true
   notifiche: []
   avviso_temperatura: 75
   conserva_giorni: 30
   pubblica_in_home_assistant: true
   debug: false
 schema:
+  plancia: bool?
   notifiche:
     - str
   avviso_temperatura: int(50,85)

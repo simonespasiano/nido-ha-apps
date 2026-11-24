@@ -1,4 +1,7 @@
 configuration:
+  plancia:
+    name: Crea la plancia
+    description: Plancia "NIDO Sistema" con l'app a tutto schermo, da scegliere anche come pagina iniziale
   notifiche:
     name: Notifiche
     description: Servizi notify per gli avvisi (CPU calda, sottotensione, ventola ferma), es. mobile_app_iphone_di_simone

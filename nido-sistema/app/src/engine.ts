@@ -9,6 +9,8 @@ export interface Options {
   conserva_giorni: number;
   pubblica_in_home_assistant: boolean;
   debug: boolean;
+  /** crea la plancia di Home Assistant con l'app (predefinito: sì) */
+  plancia?: boolean;
 }
 
 export interface FanSettings { mode: FanMode; custom: Point[]; hyst: number; useHottest: boolean }

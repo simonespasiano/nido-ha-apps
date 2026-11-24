@@ -63,3 +63,15 @@ Con il broker MQTT compare il dispositivo **Raspberry Pi** con:
 - il pulsante **Ventola al massimo 15 minuti**.
 
 Senza MQTT l'app crea solo `sensor.nido_sistema_cpu` e `sensor.nido_sistema_ventola`.
+
+## Plancia «NIDO Sistema»
+
+All'avvio l'app crea in Home Assistant la plancia **NIDO Sistema** (`/nido-sistema`) con l'app a tutto schermo.
+A differenza del pannello laterale, una plancia si può **scegliere come pagina iniziale**
+(profilo → *Plancia predefinita*, oppure *Impostazioni → Plance → ⋮ → Imposta come predefinita*) e riordinare come le altre.
+
+- La plancia usa la scheda `custom:nido-app-card`, che l'app copia in `/config/www/nido/` e registra da sola fra le risorse.
+  L'accesso è lo stesso del pannello laterale (Ingress): nessuna porta aperta e nessun login a parte, anche da fuori casa via VPN.
+- Per non vedere due voci nel menu, nella pagina dell'app (*Impostazioni → App → NIDO Sistema*) spegni **Mostra nella barra laterale**.
+- La plancia viene creata una sola volta: se la modifichi o la cancelli, l'app non la ricrea finché esiste una plancia con lo stesso indirizzo.
+- È visibile solo agli amministratori, come le app. Con l'opzione `plancia: false` l'app non tocca né la plancia né le risorse.

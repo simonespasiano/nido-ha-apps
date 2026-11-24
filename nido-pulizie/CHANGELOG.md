@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.0
+
+- **Plancia NIDO Pulizie**: all'avvio l'app crea la plancia *NIDO Pulizie* con l'app a tutto schermo. Si può scegliere come **pagina iniziale** di Home Assistant e riordinare come le altre plance; l'accesso resta protetto come nel pannello laterale. Si disattiva con la nuova opzione `plancia`
+- L'app ora può scrivere nella cartella di configurazione di Home Assistant (solo `www/nido/`, per la scheda delle plance)
+
 ## 0.1.1
 
 - Riconoscimento del robot più robusto: per ogni modello noto manda la stessa raffica di risveglio dell'app Narwal, così risponde anche un robot addormentato sulla base (prima mandava solo la richiesta di identificazione)

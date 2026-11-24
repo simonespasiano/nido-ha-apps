@@ -83,3 +83,15 @@ Si cancellano da soli dopo `conserva_giorni` giorni, o prima se superano `spazio
 - HomeKit non permette di muovere la G3 (brandeggio), di usare i gesti, il riconoscimento dei volti o gli allarmi dell'hub: queste funzioni restano nell'app Aqara.
 - La clip parte quando arriva il movimento: con HomeKit servono alcuni secondi per aprire il flusso, quindi l'inizio dell'evento può mancare.
 - Il supporto HomeKit di go2rtc è stato provato dal suo autore proprio sulla G3 (versioni EU e CN).
+
+## Plancia «NIDO Camera»
+
+All'avvio l'app crea in Home Assistant la plancia **NIDO Camera** (`/nido-camera`) con l'app a tutto schermo.
+A differenza del pannello laterale, una plancia si può **scegliere come pagina iniziale**
+(profilo → *Plancia predefinita*, oppure *Impostazioni → Plance → ⋮ → Imposta come predefinita*) e riordinare come le altre.
+
+- La plancia usa la scheda `custom:nido-app-card`, che l'app copia in `/config/www/nido/` e registra da sola fra le risorse.
+  L'accesso è lo stesso del pannello laterale (Ingress): nessuna porta aperta e nessun login a parte, anche da fuori casa via VPN.
+- Per non vedere due voci nel menu, nella pagina dell'app (*Impostazioni → App → NIDO Camera*) spegni **Mostra nella barra laterale**.
+- La plancia viene creata una sola volta: se la modifichi o la cancelli, l'app non la ricrea finché esiste una plancia con lo stesso indirizzo.
+- È visibile solo agli amministratori, come le app. Con l'opzione `plancia: false` l'app non tocca né la plancia né le risorse.

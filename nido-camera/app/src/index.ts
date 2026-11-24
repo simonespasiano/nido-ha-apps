@@ -9,8 +9,9 @@ import { DemoHome, HAHome, type Home } from './ha.js';
 import { DemoBackend, Go2rtcBackend, GO2RTC_API_PORT, STREAM, type Backend } from './backend.js';
 import { Engine, MODE_LABEL } from './engine.js';
 import { Bridge } from './bridge.js';
+import { setupPlancia } from './plancia.js';
 
-export const VERSION = '0.1.1';
+export const VERSION = '0.2.0';
 const here = dirname(fileURLToPath(import.meta.url));
 const opts = loadOptions();
 const store = new Store(DATA_DIR);
@@ -125,4 +126,9 @@ if (DEMO) {
 
 await app.listen(PORT);
 log(`Interfaccia su http://localhost:${PORT}`);
+
+// plancia di Home Assistant con l'app a tutto schermo (si può scegliere come pagina iniziale)
+if (!DEMO && opts.plancia !== false)
+  setupPlancia({ addon: 'nido_camera', urlPath: 'nido-camera', title: 'NIDO Camera', icon: 'mdi:cctv',
+    cardDir: join(here, '..', 'plancia'), log }).catch(e => log(`Plancia: ${e}`));
 process.on('SIGTERM', () => { backend.stop(); engine.recorder.stop(); setTimeout(() => process.exit(0), 1500); });

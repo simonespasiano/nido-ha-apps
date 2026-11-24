@@ -8,6 +8,8 @@ export interface Options {
   clip_dopo_movimento_secondi: number;
   clip_massima_secondi: number;
   conserva_giorni: number;
+  /** crea la plancia di Home Assistant con l'app (predefinito: sì) */
+  plancia?: boolean;
   spazio_massimo_gb: number;
   pubblica_in_home_assistant: boolean;
   debug: boolean;
