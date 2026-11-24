@@ -1,4 +1,7 @@
 configuration:
+  plancia:
+    name: Crea la plancia
+    description: Plancia "NIDO Camera" con l'app a tutto schermo, da scegliere anche come pagina iniziale
   camera:
     name: Camera
     description: Nome dell'abbinamento HomeKit in Home Assistant (es. Camera-Hub-G3-AB12). Vuoto = la prima camera HomeKit trovata

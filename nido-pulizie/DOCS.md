@@ -110,3 +110,15 @@ data:
 ## Diagnosi
 
 **Impostazioni → Diagnosi** mostra gli ultimi messaggi ricevuti per argomento e il registro. Con `debug: true` il registro dell'app contiene tutti i messaggi del robot: utile se qualcosa non torna.
+
+## Plancia «NIDO Pulizie»
+
+All'avvio l'app crea in Home Assistant la plancia **NIDO Pulizie** (`/nido-pulizie`) con l'app a tutto schermo.
+A differenza del pannello laterale, una plancia si può **scegliere come pagina iniziale**
+(profilo → *Plancia predefinita*, oppure *Impostazioni → Plance → ⋮ → Imposta come predefinita*) e riordinare come le altre.
+
+- La plancia usa la scheda `custom:nido-app-card`, che l'app copia in `/config/www/nido/` e registra da sola fra le risorse.
+  L'accesso è lo stesso del pannello laterale (Ingress): nessuna porta aperta e nessun login a parte, anche da fuori casa via VPN.
+- Per non vedere due voci nel menu, nella pagina dell'app (*Impostazioni → App → NIDO Pulizie*) spegni **Mostra nella barra laterale**.
+- La plancia viene creata una sola volta: se la modifichi o la cancelli, l'app non la ricrea finché esiste una plancia con lo stesso indirizzo.
+- È visibile solo agli amministratori, come le app. Con l'opzione `plancia: false` l'app non tocca né la plancia né le risorse.

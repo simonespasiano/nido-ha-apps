@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.0
+
+- **Plancia NIDO Sistema**: all'avvio l'app crea la plancia *NIDO Sistema* con l'app a tutto schermo. Si può scegliere come **pagina iniziale** di Home Assistant e riordinare come le altre plance; l'accesso resta protetto come nel pannello laterale. Si disattiva con la nuova opzione `plancia`
+- L'app ora può scrivere nella cartella di configurazione di Home Assistant (solo `www/nido/`, per la scheda delle plance)
+
 ## 0.2.1
 
 - L'app usa la rete dell'host. Un `/sys` montato dentro un container appartiene alla rete del container e resta in sola lettura come quello che Home Assistant gli dà; con la rete dell'host il montaggio è quello del sistema

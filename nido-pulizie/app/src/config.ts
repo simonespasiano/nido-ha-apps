@@ -6,6 +6,8 @@ export interface Options {
   persone: string[];
   pubblica_in_home_assistant: boolean;
   conserva_giorni: number;
+  /** crea la plancia di Home Assistant con l'app (predefinito: sì) */
+  plancia?: boolean;
   debug: boolean;
   device_id?: string;
   product_key?: string;

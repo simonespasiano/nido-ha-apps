@@ -1,4 +1,7 @@
 configuration:
+  plancia:
+    name: Crea la plancia
+    description: Plancia "NIDO Pulizie" con l'app a tutto schermo, da scegliere anche come pagina iniziale
   indirizzo_ip:
     name: Indirizzo IP del robot
     description: L'IP fisso del Narwal sulla rete di casa, ad esempio 192.168.1.50

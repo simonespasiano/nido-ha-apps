@@ -1,5 +1,5 @@
 name: NIDO Pulizie
-version: "0.1.1"
+version: "0.2.0"
 slug: nido_pulizie
 description: Robot Narwal in locale, senza cloud - stato e comandi, pulizia per stanza dalla mappa, programmi automatici, storico e statistiche
 url: https://github.com/simonespasiano/nido-ha-apps
@@ -14,9 +14,12 @@ ingress_port: 8099
 panel_icon: mdi:robot-vacuum
 panel_title: NIDO Pulizie
 homeassistant_api: true
+map:
+  - homeassistant_config:rw
 services:
   - mqtt:want
 options:
+  plancia: true
   indirizzo_ip: ""
   porta: 9002
   persone: []
@@ -24,6 +27,7 @@ options:
   conserva_giorni: 365
   debug: false
 schema:
+  plancia: bool?
   indirizzo_ip: str
   porta: port
   persone:

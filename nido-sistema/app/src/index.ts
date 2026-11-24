@@ -9,8 +9,9 @@ import { SimPi } from './sim.js';
 import { Engine, type Options } from './engine.js';
 import { Bridge } from './bridge.js';
 import { CURVES, MODE_HELP, MODE_LABEL, SAFETY_TEMP, type FanMode } from './fan.js';
+import { setupPlancia } from './plancia.js';
 
-export const VERSION = '0.2.1';
+export const VERSION = '0.3.0';
 const DEMO = process.env.DEMO === '1';
 const DATA_DIR = process.env.DATA_DIR ?? '/data';
 const PORT = Number(process.env.PORT ?? 8099);
@@ -21,6 +22,7 @@ const opts: Options = {
   notifiche: (Array.isArray(raw.notifiche) ? raw.notifiche : []).map((s: string) => String(s).trim().replace(/^notify\./, '')).filter(Boolean),
   avviso_temperatura: Number(raw.avviso_temperatura ?? 75), conserva_giorni: Number(raw.conserva_giorni ?? 30),
   pubblica_in_home_assistant: raw.pubblica_in_home_assistant !== false, debug: !!raw.debug,
+  plancia: raw.plancia !== false,
 };
 
 const logLines: { ts: number; msg: string }[] = [];
@@ -111,5 +113,10 @@ app.get('/api/log', () => ({ log: store.logs(Date.now() - 14 * 86400_000), app: 
 
 await app.listen(PORT);
 log(`Interfaccia su http://localhost:${PORT}`);
+
+// plancia di Home Assistant con l'app a tutto schermo (si può scegliere come pagina iniziale)
+if (!DEMO && opts.plancia !== false)
+  setupPlancia({ addon: 'nido_sistema', urlPath: 'nido-sistema', title: 'NIDO Sistema', icon: 'mdi:raspberry-pi',
+    cardDir: join(here, '..', 'plancia'), log }).catch(e => log(`Plancia: ${e}`));
 const stop = () => { engine.shutdown(); log('Ventola restituita al firmware, arresto'); process.exit(0); };
 process.on('SIGTERM', stop); process.on('SIGINT', stop);
