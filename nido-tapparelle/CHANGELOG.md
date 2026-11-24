@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.0
+
+- **Plancia NIDO Tapparelle**: all'avvio l'app crea la plancia *NIDO Tapparelle* con l'app a tutto schermo. Si può scegliere come **pagina iniziale** di Home Assistant e riordinare come le altre plance; l'accesso resta protetto come nel pannello laterale. Si disattiva con la nuova opzione `plancia`
+- Nuova scheda `custom:nido-app-card` per mostrare un'app NIDO in qualsiasi plancia
+- L'app ora può scrivere nella cartella di configurazione di Home Assistant (solo `www/nido/`, per la scheda)
+- Nel menu laterale l'app si chiama **NIDO Tapparelle**, come le altre app NIDO
+
 ## 0.1.1
 
 - **Temperatura esterna sbagliata**: la ricerca automatica poteva prendere un sensore senza area qualsiasi, ad esempio la temperatura della CPU o dell'SSD del Raspberry. Ora come temperatura esterna sceglie da sola solo sensori in un'area o con un nome come "Esterno", "Giardino", "Balcone", "Terrazzo", e mai temperature di computer, dischi, schede o batterie. Se non ne trova, usa la temperatura delle previsioni meteo

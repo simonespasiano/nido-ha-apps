@@ -15,6 +15,8 @@ export interface Options {
   soglia_spegnimento: number;  // °C sotto cui torna "freddo" (isteresi)
   intervallo_secondi: number;
   conserva_giorni: number;
+  /** crea la plancia di Home Assistant con l'app (predefinito: sì) */
+  plancia?: boolean;
   pubblica_sensori: boolean;
   modelli_meteo: string[];
   sensore_esterno?: string;

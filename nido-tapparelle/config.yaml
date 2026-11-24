@@ -1,5 +1,5 @@
 name: NIDO Tapparelle
-version: "0.1.1"
+version: "0.2.0"
 slug: nido_tapparelle
 description: Tapparelle in chiaro - scenari, automazioni a orario, col sole e con la presenza, protezione dal sole, porte aperte, vento e pioggia, diario di chi le muove
 url: https://github.com/simonespasiano/nido-ha-apps
@@ -12,17 +12,21 @@ boot: auto
 ingress: true
 ingress_port: 8099
 panel_icon: mdi:window-shutter
-panel_title: Tapparelle
+panel_title: NIDO Tapparelle
 homeassistant_api: true
+map:
+  - homeassistant_config:rw
 services:
   - mqtt:want
 options:
+  plancia: true
   tapparelle: []
   escludi: []
   persone: []
   pubblica_in_home_assistant: true
   conserva_giorni: 365
 schema:
+  plancia: bool?
   tapparelle:
     - str
   escludi:

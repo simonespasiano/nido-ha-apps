@@ -11,8 +11,9 @@ import { Bridge } from './bridge.js';
 import { statistics } from './stats.js';
 import { MODE_LABEL, sanitizeGlobal, sanitizeRule, sanitizeScene, sanitizeShutter, type Mode } from './model.js';
 import { DIRECTIONS, sunPosition } from './sun.js';
+import { setupPlancia } from './plancia.js';
 
-const VERSION = '0.1.1';
+const VERSION = '0.2.0';
 const here = dirname(fileURLToPath(import.meta.url));
 const log = (m: string) => console.log(`[nido-tapparelle] ${m}`);
 
@@ -230,6 +231,11 @@ async function main() {
 
   await app.listen(PORT);
   log(`Interfaccia in ascolto sulla porta ${PORT}`);
+
+  // plancia di Home Assistant con l'app a tutto schermo (si può scegliere come pagina iniziale)
+  if (!DEMO && opts.plancia !== false)
+    setupPlancia({ addon: 'nido_tapparelle', urlPath: 'nido-tapparelle', title: 'NIDO Tapparelle', icon: 'mdi:window-shutter',
+      cardDir: join(here, '..', 'plancia'), log }).catch(e => log(`Plancia: ${e}`));
 }
 
 main();

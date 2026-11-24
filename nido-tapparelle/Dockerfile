@@ -13,6 +13,7 @@ WORKDIR /app
 COPY app/package.json ./
 COPY --from=build /build/dist ./dist
 COPY app/public ./public
+COPY app/plancia ./plancia
 CMD ["node", "--disable-warning=ExperimentalWarning", "dist/index.js"]
 
-LABEL io.hass.type="addon" io.hass.version="0.1.1"
+LABEL io.hass.type="addon" io.hass.version="0.2.0"
