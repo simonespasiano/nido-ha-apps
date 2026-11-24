@@ -14,8 +14,9 @@ import { Feeder } from './feeder.js';
 import { Automations, LEVEL_LABEL, MODE_LABEL } from './automations.js';
 import { houseHumidity } from './humidity.js';
 import type { Action } from './controls.js';
+import { setupPlancia } from './plancia.js';
 
-const VERSION = "0.7.3";
+const VERSION = "0.8.0";
 const here = dirname(fileURLToPath(import.meta.url));
 
 async function main() {
@@ -278,6 +279,11 @@ async function main() {
 
   await app.listen(PORT);
   log(`Interfaccia in ascolto sulla porta ${PORT}`);
+
+  // plancia di Home Assistant con l'app a tutto schermo (si può scegliere come pagina iniziale)
+  if (!DEMO && opts.plancia !== false)
+    setupPlancia({ addon: 'nido_clima', urlPath: 'nido-clima', title: 'NIDO Clima', icon: 'mdi:radiator',
+      cardDir: join(here, '..', 'plancia'), log }).catch(e => log(`Plancia: ${e}`));
 }
 
 main();

@@ -1,4 +1,7 @@
 configuration:
+  plancia:
+    name: Crea la plancia
+    description: Plancia "NIDO Tapparelle" con l'app a tutto schermo, da scegliere anche come pagina iniziale
   tapparelle:
     name: Tapparelle
     description: Entità cover.* da gestire. Vuoto = tutte quelle trovate (escluse porte del garage e cancelli)

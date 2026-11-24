@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0
+
+- **Plancia NIDO Clima**: all'avvio l'app crea la plancia *NIDO Clima* con l'app a tutto schermo. Si può scegliere come **pagina iniziale** di Home Assistant e riordinare come le altre plance; l'accesso resta protetto come nel pannello laterale. Si disattiva con la nuova opzione `plancia`
+- Nuova scheda `custom:nido-app-card` per mostrare un'app NIDO in qualsiasi plancia
+- L'app ora può scrivere nella cartella di configurazione di Home Assistant (solo `www/nido/`, per la scheda)
+
 ## 0.7.3
 
 - **Torna al programma** ora funziona anche dopo un cambio fatto sulla valvola o dall'app di Home Assistant: prima NIDO rivedeva subito l'obiettivo manuale ancora impostato sulla valvola e ricreava l'intervento appena annullato

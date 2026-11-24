@@ -120,6 +120,7 @@ Puoi usarli nelle automazioni normali. Questi sensori spariscono se l'app è fer
 | `intervallo_secondi` | 60 | ogni quanto leggere i valori |
 | `conserva_giorni` | 120 | per quanti giorni tenere lo storico |
 | `pubblica_sensori` | true | crea i sensori in Home Assistant |
+| `plancia` | true | crea la plancia *NIDO Clima* con l'app (vedi sotto) |
 
 Le due soglie della configurazione sono solo i **valori di partenza**. Tutte le soglie si modificano dalla scheda **Soglie** dell'app,
 anche con valori diversi per singola stanza, e valgono subito senza riavviare. Una volta salvate da lì, hanno la precedenza sulla configurazione;
@@ -128,6 +129,27 @@ il pulsante *Valori della configurazione* torna a quelli dell'opzione.
 Prima di salvare, **Prova queste soglie** le riapplica allo storico e mostra per ogni stanza quante accensioni avrebbe visto,
 il tempo caldo e la distribuzione della differenza valvola − stanza: se la differenza massima resta sotto la soglia di accensione,
 quel termosifone non verrà mai riconosciuto.
+
+## Plancia «NIDO Clima»
+
+All'avvio l'app crea in Home Assistant la plancia **NIDO Clima** (`/nido-clima`) con l'app a tutto schermo.
+A differenza del pannello laterale, una plancia si può **scegliere come pagina iniziale**
+(profilo → *Plancia predefinita*, oppure *Impostazioni → Plance → ⋮ → Imposta come predefinita*) e riordinare come le altre.
+
+- La plancia usa la scheda `custom:nido-app-card`, che l'app copia in `/config/www/nido/` e registra da sola fra le risorse.
+  L'accesso è lo stesso del pannello laterale (Ingress): nessuna porta aperta e nessun login a parte, anche da fuori casa via VPN.
+- Per non vedere due voci nel menu, nella pagina dell'app (*Impostazioni → App → NIDO Clima*) spegni **Mostra nella barra laterale**.
+- La plancia viene creata una sola volta: se la modifichi o la cancelli, l'app non la ricrea finché esiste una plancia con lo stesso indirizzo.
+- Al primo avvio, se la cartella `www` non esisteva, Home Assistant va riavviato una volta (arriva una notifica).
+- È visibile solo agli amministratori, come le app.
+- Con l'opzione `plancia: false` l'app non tocca né la plancia né le risorse.
+
+La scheda si può usare anche in altre plance:
+
+```yaml
+type: custom:nido-app-card
+addon: nido_clima
+```
 
 ## Dashboard Casa
 
