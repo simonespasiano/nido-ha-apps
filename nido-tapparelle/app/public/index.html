@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NIDO Tapparelle</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="tapparelle.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h16v18H4zM4 7h16M4 11h16M4 15h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+      <div>
+        <h1>NIDO Tapparelle</h1>
+        <p id="subtitle">Caricamento…</p>
+      </div>
+    </div>
+    <div class="head-right">
+      <div id="sunpill" class="plant" hidden></div>
+      <button id="modepill" class="plant mode-pill" hidden></button>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="tapparelle" aria-selected="true">Tapparelle</button>
+    <button role="tab" data-tab="scenari" aria-selected="false">Scenari</button>
+    <button role="tab" data-tab="automazioni" aria-selected="false">Automazioni</button>
+    <button role="tab" data-tab="sole" aria-selected="false">Sole e meteo</button>
+    <button role="tab" data-tab="sensori" aria-selected="false">Sensori</button>
+    <button role="tab" data-tab="diario" aria-selected="false">Diario</button>
+    <button role="tab" data-tab="statistiche" aria-selected="false">Statistiche</button>
+    <button role="tab" data-tab="impostazioni" aria-selected="false">Impostazioni</button>
+  </nav>
+
+  <main>
+    <section id="tab-tapparelle" class="tab"><div id="tapparelle"><p class="note">Caricamento…</p></div></section>
+    <section id="tab-scenari" class="tab" hidden><div id="scenari"></div></section>
+    <section id="tab-automazioni" class="tab" hidden><div id="automazioni"></div></section>
+    <section id="tab-sole" class="tab" hidden><div id="sole"></div></section>
+    <section id="tab-sensori" class="tab" hidden><div id="sensori"></div></section>
+    <section id="tab-diario" class="tab" hidden>
+      <div class="toolbar">
+        <label>Tapparella <select id="ev-shutter"><option value="">Tutte</option></select></label>
+        <label>Tipo
+          <select id="ev-kind">
+            <option value="">Tutti</option>
+            <option value="movimento">Movimenti</option>
+            <option value="regola">Automazioni</option>
+            <option value="scenario">Scenari</option>
+            <option value="sole">Sole</option>
+            <option value="blocco">Porte e finestre</option>
+            <option value="pausa">Pause manuali</option>
+            <option value="meteo">Vento e pioggia</option>
+            <option value="modalita">Modalità</option>
+            <option value="comando">Comandi</option>
+            <option value="dispositivi">Nuovi dispositivi</option>
+            <option value="errore">Problemi</option>
+            <option value="impostazioni">Impostazioni</option>
+          </select>
+        </label>
+      </div>
+      <div id="events" class="events"></div>
+    </section>
+    <section id="tab-statistiche" class="tab" hidden><div id="statistiche"></div></section>
+    <section id="tab-impostazioni" class="tab" hidden><div id="impostazioni"></div></section>
+  </main>
+
+  <dialog id="dlg" aria-labelledby="dlg-title">
+    <form method="dialog" class="dlg-head">
+      <div><h2 id="dlg-title"></h2><p id="dlg-sub"></p></div>
+      <button class="icon-btn" aria-label="Chiudi">✕</button>
+    </form>
+    <div id="dlg-body"></div>
+  </dialog>
+  <div id="toast" role="status" hidden></div>
+  <footer id="footer"></footer>
+
+  <script src="app.js"></script>
+  <script src="scenari.js"></script>
+  <script src="automazioni.js"></script>
+  <script src="sole.js"></script>
+  <script src="altro.js"></script>
+</body>
+</html>

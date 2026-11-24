@@ -1,0 +1,15 @@
+configuration:
+  tapparelle:
+    name: Tapparelle
+    description: Entità cover.* da gestire. Vuoto = tutte quelle trovate (escluse porte del garage e cancelli)
+  escludi:
+    name: Escludi
+    description: Entità cover.* da ignorare, ad esempio una tenda da sole gestita in altro modo
+  persone:
+    name: Persone
+    description: Entità person.* da considerare per "casa vuota". Vuoto = tutte (si può cambiare anche dall'app)
+  pubblica_in_home_assistant:
+    name: Crea le entità in Home Assistant
+    description: Modalità, protezione dal sole, scenari e interruttori per tapparella via MQTT (serve il broker Mosquitto); senza MQTT solo un sensore di lettura
+  conserva_giorni:
+    name: Giorni di storico
