@@ -12,7 +12,7 @@ import { statistics } from './stats.js';
 import { MODE_LABEL, sanitizeGlobal, sanitizeRule, sanitizeScene, sanitizeShutter, type Mode } from './model.js';
 import { DIRECTIONS, sunPosition } from './sun.js';
 
-const VERSION = '0.1.0';
+const VERSION = '0.1.1';
 const here = dirname(fileURLToPath(import.meta.url));
 const log = (m: string) => console.log(`[nido-tapparelle] ${m}`);
 

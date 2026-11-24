@@ -29,6 +29,7 @@ const EXCLUDED_CLASSES = new Set(['garage', 'gate', 'door']);
 const MOVING = new Set(['opening', 'closing']);
 const SUNNY = new Set(['sunny', 'partlycloudy', 'clear-night', 'exceptional']);
 const OUTDOOR_AREA = /esterno|esterna|giardino|balcon|terrazz|fuori|cortile|outdoor|outside/i;
+const DEVICE_TEMP = /cpu|soc|ssd|nvme|disk|disco|chip|processor|raspberry|\brpi|rp1|core|scheda|board|router|fritz|nas|nido_sistema|device_temperature|internal|interna|batter/i;
 
 export const idOf = (entity: string) => entity.replace(/^cover\./, '');
 const dayKey = (ms: number) => { const d = new Date(ms); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
@@ -144,18 +145,21 @@ export class Engine {
   /** Sensori esterni: quelli scelti, altrimenti riconosciuti dall'area o dal nome. */
   outdoorEntities() {
     const all = this.home.sensors();
-    const outside = (s: SensorInfo) => !s.areaId || OUTDOOR_AREA.test(s.areaName ?? '') || OUTDOOR_AREA.test(s.entity) || OUTDOOR_AREA.test(s.name);
-    const auto = (role: SensorInfo['role'], strict: boolean) => {
-      const c = all.filter(s => s.role === role && (strict ? outside(s) : true));
-      return (c.find(s => OUTDOOR_AREA.test(s.entity) || OUTDOOR_AREA.test(s.name)) ?? c[0])?.entity ?? null;
+    // fuori = area o nome "esterno/giardino/balcone…"; mai le temperature di computer e dispositivi
+    const named = (s: SensorInfo) => OUTDOOR_AREA.test(s.areaName ?? '') || OUTDOOR_AREA.test(s.entity) || OUTDOOR_AREA.test(s.name);
+    const device = (s: SensorInfo) => DEVICE_TEMP.test(s.entity) || DEVICE_TEMP.test(s.name);
+    const auto = (role: SensorInfo['role'], mode: 'nome' | 'senza_area' | 'tutti') => {
+      const c = all.filter(s => s.role === role && !device(s) &&
+        (mode === 'tutti' || named(s) || (mode === 'senza_area' && !s.areaId)));
+      return (c.find(named) ?? c[0])?.entity ?? null;
     };
     const o = this.global.outdoor;
     return {
-      temp: o.temp ?? auto('temperatura', true),
-      lux: o.lux ?? auto('luce', true),
-      wind: o.wind ?? auto('vento', false),
-      rain: o.rain ?? auto('pioggia', false),
-      weather: o.weather ?? auto('meteo', false),
+      temp: o.temp ?? auto('temperatura', 'nome'),
+      lux: o.lux ?? auto('luce', 'senza_area'),
+      wind: o.wind ?? auto('vento', 'tutti'),
+      rain: o.rain ?? auto('pioggia', 'tutti'),
+      weather: o.weather ?? auto('meteo', 'tutti'),
       auto: { temp: !o.temp, lux: !o.lux, wind: !o.wind, rain: !o.rain, weather: !o.weather },
     };
   }

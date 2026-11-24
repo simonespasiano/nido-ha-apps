@@ -228,7 +228,7 @@ export class HAHome implements Home {
   sensors(): SensorInfo[] {
     const out: SensorInfo[] = [];
     for (const s of this.states.values()) {
-      if (this.disabled.has(s.entity_id) || s.entity_id.includes('nido_tapparelle')) continue;
+      if (this.disabled.has(s.entity_id) || /nido_(tapparelle|sistema)/.test(s.entity_id)) continue;
       const role = sensorRole(s.entity_id, s.attributes);
       if (!role) continue;
       const areaId = this.entityArea.get(s.entity_id) ?? null;

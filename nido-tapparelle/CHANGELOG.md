@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1
+
+- **Temperatura esterna sbagliata**: la ricerca automatica poteva prendere un sensore senza area qualsiasi, ad esempio la temperatura della CPU o dell'SSD del Raspberry. Ora come temperatura esterna sceglie da sola solo sensori in un'area o con un nome come "Esterno", "Giardino", "Balcone", "Terrazzo", e mai temperature di computer, dischi, schede o batterie. Se non ne trova, usa la temperatura delle previsioni meteo
+- I sensori di NIDO Sistema non compaiono più fra quelli utili alle tapparelle
+
 ## 0.1.0
 
 Prima versione.

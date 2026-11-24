@@ -1,6 +1,6 @@
 {
   "name": "nido-tapparelle",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "description": "App Home Assistant: tapparelle, scenari, automazioni, sole, sensori, diario",
