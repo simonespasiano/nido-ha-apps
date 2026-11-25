@@ -321,6 +321,7 @@ $('#manage').addEventListener('close', () => { managing = null; pendingTemp = nu
 const loaders = { casa: () => window.loadCasa?.(), stanze: loadRooms, automazioni: () => window.loadAutomazioni?.(), umidita: () => window.loadUmidita?.(), valvole: () => window.loadValvole?.(), diario: loadEvents, statistiche: loadStats, dispositivi: loadEntities, soglie: () => window.loadThresholds?.() };
 
 const refresh = () => {
+  window.loadPresenza?.().catch(() => {});
   const active = document.querySelector('.tabs button[aria-selected="true"]').dataset.tab;
   if (!['dispositivi', 'soglie', 'automazioni', 'valvole', 'umidita'].includes(active)) loaders[active]().catch(err => { $('#subtitle').textContent = `Errore di collegamento (${err.message})`; });
 };

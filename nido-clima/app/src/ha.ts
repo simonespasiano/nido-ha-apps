@@ -334,7 +334,7 @@ export class HASource implements DataSource {
 
   people() {
     return [...this.states.values()].filter(s => s.entity_id.startsWith('person.'))
-      .map(s => ({ id: s.entity_id, name: s.attributes.friendly_name ?? s.entity_id, home: s.state === 'home', state: s.state, trackers: Array.isArray(s.attributes.device_trackers) ? s.attributes.device_trackers.length : 0 }));
+      .map(s => ({ id: s.entity_id, name: s.attributes.friendly_name ?? s.entity_id, home: s.state === 'home', state: s.state, trackers: Array.isArray(s.attributes.device_trackers) ? s.attributes.device_trackers.length : 0, userId: s.attributes.user_id ?? null }));
   }
 
   async notifyServices(): Promise<string[]> {

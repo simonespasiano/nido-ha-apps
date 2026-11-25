@@ -62,6 +62,15 @@ La scheda **Automazioni** sostituisce le automazioni sparse in Home Assistant: N
 
 Una valvola messa su **Spento** non viene riaccesa. Ogni decisione finisce nel **Diario** con il motivo.
 
+### Presenza a mano
+
+Sopra le schede c'è sempre la barra della **presenza**: dice in che modalità è la casa e perché (es. *Fuori · tutti fuori da 40 min*). Con **Presenza…** si apre e si può:
+
+- cambiare la **modalità della casa** con un tocco, senza salvare;
+- per ogni persona scegliere **Dal telefono** (normale), **In casa**, **Fuori** o **Non conta**. La scelta a mano vale al posto della posizione del telefono, per il tempo scelto (da 4 ore a 7 giorni, oppure finché non la cambi). *Non conta* esclude la persona dal calcolo.
+
+Serve quando la posizione di un telefono sbaglia: se NIDO crede che tu sia fuori e non scalda, metti te stesso su **In casa** e il riscaldamento torna subito al programma. Quando la casa è su Fuori e il telefono di chi guarda il pannello lo dà fuori, compare anche il pulsante **Sono a casa** (vale 12 ore). Le presenze a mano attive restano segnalate con ✋ nella barra e finiscono nel Diario.
+
 **Notifiche per arieggiare**: scegli i servizi notify nel riquadro Umidità intelligente. L'avviso arriva dopo un picco improvviso (es. +10 punti in pochi minuti dopo la doccia) o con umidità sopra la soglia da 30 minuti. Arriva solo se fuori l'aria contiene meno vapore che dentro e al massimo ogni 3 ore per stanza.
 
 ## Chi cambia la temperatura

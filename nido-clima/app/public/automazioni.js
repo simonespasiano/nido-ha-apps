@@ -38,10 +38,10 @@
       <div class="card au-head">
         <div class="card-head"><h2>NIDO gestisce il riscaldamento</h2><label class="toggle"><input type="checkbox" data-k="enabled" ${s.enabled ? 'checked' : ''}><span></span></label></div>
         <p class="note">${s.enabled ? 'NIDO decide l\'obiettivo di ogni valvola secondo programmi, modalità della casa e regole qui sotto. Un cambio fatto sulla ghiera della valvola viene rispettato fino al prossimo cambio di programma.' : 'Sospeso: le valvole tengono l\'obiettivo che hanno. Attiva per far applicare programmi e regole.'}</p>
-        <h3>Modalità della casa</h3>
+        <h3>Modalità della casa <small class="note">si applica subito</small></h3>
         <div class="seg wrap">${modes.map(m => `<button class="${s.houseMode === m ? 'on' : ''}" data-mode="${m}">${esc(L.modes[m])}</button>`).join('')}</div>
         ${s.houseMode === 'vacanza' ? `<div class="f-row"><label>Fino al <input type="date" data-vac value="${s.vacationUntil ? new Date(s.vacationUntil).toISOString().slice(0, 10) : ''}"></label><span class="note">poi torna automatica</span></div>` : ''}
-        <p class="note">Ora: <b>${esc(L.modes[h.mode])}</b> · ${esc(h.why)}${d.people.length ? ` · ${d.people.map(p => `${esc(p.name)} ${p.state === 'home' ? '🏠' : ['unknown', 'unavailable'].includes(p.state) || !p.trackers ? '❔' : `🚶 (${esc(p.state)})`}`).join(' ')}` : ''}</p>
+        <p class="note">Ora: <b>${esc(L.modes[h.mode])}</b> · ${esc(h.why)}${d.people.length ? ` · ${d.people.map(p => `${esc(p.name)} ${p.manual ? `✋ ${({ casa: '🏠', fuori: '🚶', ignora: '–' })[p.manual.state]}` : p.state === 'home' ? '🏠' : ['unknown', 'unavailable'].includes(p.state) || !p.trackers ? '❔' : `🚶 (${esc(p.state)})`}`).join(' ')}` : ''}</p>
       </div>
 
       <div class="au-rooms">${d.rooms.map(r => {
@@ -70,6 +70,7 @@
       <div class="au-rules">
         <div class="card"><div class="card-head"><h2>🏠 Presenza</h2></div>
           <p class="note">In modalità <b>Automatica</b>, quando tutte le persone sono fuori la casa passa a <b>Fuori</b> e ogni stanza usa la sua temperatura "fuori casa". Al rientro di qualcuno si torna subito al programma.</p>
+          <p class="note">Se la posizione di un telefono sbaglia, correggila dalla barra <b>Presenza…</b> in alto: puoi dire a mano chi è in casa o fuori.</p>
           <div class="f-row"><label>Passa a Fuori dopo <input type="number" min="0" max="240" value="${s.awayDelayMin}" data-k="awayDelayMin"> minuti</label></div>
           <h3>Persone considerate</h3>
           <div class="chips">${d.people.length ? d.people.map(p => `<button class="chip ${!s.persons.length || s.persons.includes(p.id) ? 'on' : ''}" data-person="${p.id}">${esc(p.name)}</button>`).join('') : '<span class="note">Nessuna persona in Home Assistant</span>'}</div>
@@ -112,7 +113,7 @@
     const b = e.target.closest('button'); if (!b || b.disabled) return;
     const s = draft;
     try {
-      if (b.dataset.mode) { s.houseMode = b.dataset.mode; setDirty(); }
+      if (b.dataset.mode) { await post('api/automations/mode', { mode: b.dataset.mode }); s.houseMode = b.dataset.mode; toast(`Modalità della casa: ${data.labels.modes[b.dataset.mode]}`); window.loadPresenza?.(); }
       else if (b.dataset.person) { const all = data.people.map(p => p.id); let cur = s.persons.length ? [...s.persons] : [...all]; cur = cur.includes(b.dataset.person) ? cur.filter(x => x !== b.dataset.person) : [...cur, b.dataset.person]; s.persons = cur.length === all.length ? [] : cur; setDirty(); }
       else if (b.dataset.notify) { const n = b.dataset.notify; s.humidity.services = s.humidity.services.includes(n) ? s.humidity.services.filter(x => x !== n) : [...s.humidity.services, n]; setDirty(); }
       else if (b.dataset.edit) { open.has(b.dataset.edit) ? open.delete(b.dataset.edit) : open.add(b.dataset.edit); }
@@ -126,7 +127,7 @@
       else if (b.id === 'au-save') { await post('api/automations', draft); dirty = false; toast('Automazioni salvate'); }
       else return;
     } catch (err) { toast(err.message, true); }
-    if (b.dataset.boost || b.dataset.set || b.dataset.clear || b.id === 'au-save') await window.loadAutomazioni(); else render();
+    if (b.dataset.mode || b.dataset.boost || b.dataset.set || b.dataset.clear || b.id === 'au-save') await window.loadAutomazioni(); else render();
   });
   document.addEventListener('change', e => {
     if (!root()?.contains(e.target)) return;
@@ -137,7 +138,11 @@
     else if (t.dataset.roomEnabled) s.rooms[t.dataset.roomEnabled].enabled = t.checked;
     else if (t.dataset.temp) s.rooms[t.dataset.temp].temps[t.dataset.tk] = Number(t.value);
     else if (t.dataset.blk) { const w = s.rooms[t.dataset.blk].week[t.dataset.day]; w[Number(t.dataset.i)][t.dataset.f] = t.value; w.sort((a, b) => a.at.localeCompare(b.at)); }
-    else if (t.hasAttribute('data-vac')) s.vacationUntil = t.value ? new Date(t.value + 'T23:59').getTime() : null;
+    else if (t.hasAttribute('data-vac')) {
+      s.vacationUntil = t.value ? new Date(t.value + 'T23:59').getTime() : null;
+      post('api/automations/mode', { mode: 'vacanza', vacationUntil: s.vacationUntil }).then(() => window.loadPresenza?.()).catch(err => toast(err.message, true));
+      return;
+    }
     else return;
     setDirty();
     if (t.dataset.blk || t.dataset.k === 'enabled') render();

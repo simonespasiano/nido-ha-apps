@@ -82,7 +82,7 @@ export interface DataSource {
   valveLink?(room: Room): ValveLink;
   /** Chi ha cambiato da poco l'obiettivo (o la modalità) di una stanza. */
   attribute?(room: Room, value: number | string | null, now: number): Attribution;
-  people?(): { id: string; name: string; home: boolean; state: string; trackers: number }[];
+  people?(): { id: string; name: string; home: boolean; state: string; trackers: number; userId?: string | null }[];
   notifyServices?(): Promise<string[]>;
 }
 

@@ -30,6 +30,11 @@ export interface AutoSettings {
 }
 
 export interface Override { value: number; until: number; source: 'pannello' | 'valvola' | 'boost' }
+/** Presenza decisa a mano per una persona: vale al posto della posizione del telefono. */
+export type PresenceState = 'casa' | 'fuori' | 'ignora';
+export interface PresenceOverride { state: PresenceState; until: number | null; by: string | null; since: number }
+export const PRESENCE_LABEL: Record<PresenceState, string> = { casa: 'in casa', fuori: 'fuori', ignora: 'non conta' };
+export interface PersonView { id: string; name: string; home: boolean; state: string; trackers: number; userId?: string | null; gpsHome: boolean; manual: PresenceOverride | null }
 
 const KEY = 'automazioni';
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -142,12 +147,44 @@ export class Automations {
   private highSince = new Map<string, number>();
   private mouldOn = new Set<string>();
   decisions: RoomDecision[] = [];
+  presence: Record<string, PresenceOverride>;
 
   constructor(private src: DataSource, private store: Store, private log: (msg: string, room: string | null, kind?: 'automazione' | 'umidita') => void,
               private outdoor: () => { temp: number | null; hum: number | null }) {
     const saved = store.getSetting<AutoSettings>(KEY);
     this.settings = saved ? sanitizeAuto(saved, { ...DEFAULT, rooms: saved.rooms ?? {} }) : { ...DEFAULT };
     this.overrides = store.getSetting<Record<string, Override>>('override') ?? {};
+    this.presence = store.getSetting<Record<string, PresenceOverride>>('presenza') ?? {};
+  }
+
+  private personName(id: string) { return (this.src.people?.() ?? []).find(p => p.id === id)?.name ?? id.replace(/^person\./, ''); }
+
+  /** Presenza a mano di una persona (null = di nuovo dalla posizione del telefono). */
+  setPresence(id: string, state: PresenceState | null, hours: number | null, user: string | null) {
+    if (!(this.src.people?.() ?? []).some(p => p.id === id)) throw new Error('Persona non trovata');
+    const name = this.personName(id), by = user ? ` — da ${user}` : '';
+    if (state == null) {
+      if (!this.presence[id]) return;
+      delete this.presence[id];
+      this.log(`Presenza di ${name}: di nuovo dalla posizione del telefono${by}`, null);
+    } else {
+      if (!['casa', 'fuori', 'ignora'].includes(state)) throw new Error('Stato non valido');
+      const until = hours && hours > 0 ? Date.now() + Math.min(hours, 24 * 60) * 3_600_000 : null;
+      this.presence[id] = { state, until, by: user, since: Date.now() };
+      this.log(`Presenza di ${name} impostata a mano: ${PRESENCE_LABEL[state]}${until ? ` fino a ${new Date(until).toLocaleString('it-IT', { weekday: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}` : ', finché non la cambi'}${by}`, null);
+    }
+    this.store.setSetting('presenza', this.presence);
+  }
+
+  /** Modalità della casa, applicata subito (senza passare dal salvataggio delle automazioni). */
+  setMode(mode: HouseMode, vacationUntil: number | null | undefined, user: string | null) {
+    if (!['auto', 'casa', 'fuori', 'notte', 'vacanza'].includes(mode)) throw new Error('Modalità non valida');
+    const changed = this.settings.houseMode !== mode;
+    this.settings.houseMode = mode;
+    if (vacationUntil !== undefined) this.settings.vacationUntil = vacationUntil ? Number(vacationUntil) : null;
+    if (mode !== 'vacanza') this.settings.vacationUntil = null;
+    this.store.setSetting(KEY, this.settings);
+    if (changed) this.log(`Modalità della casa: ${MODE_LABEL[mode]}${mode === 'vacanza' && this.settings.vacationUntil ? ` fino al ${new Date(this.settings.vacationUntil).toLocaleDateString('it-IT')}` : ''}${user ? ` — da ${user}` : ''}`, null);
   }
 
   roomAuto(room: Room): RoomAuto {
@@ -157,11 +194,11 @@ export class Automations {
 
   save(input: any, user: string | null) {
     const before = this.settings;
-    this.settings = sanitizeAuto(input, this.settings);
+    // la modalità della casa si cambia solo con setMode: un pannello aperto da tempo non deve riportarla indietro
+    this.settings = { ...sanitizeAuto(input, this.settings), houseMode: before.houseMode, vacationUntil: before.vacationUntil };
     this.store.setSetting(KEY, this.settings);
     const parts: string[] = [];
     if (before.enabled !== this.settings.enabled) parts.push(this.settings.enabled ? 'NIDO gestisce gli obiettivi delle valvole' : 'automazioni sospese: gli obiettivi restano quelli attuali');
-    if (before.houseMode !== this.settings.houseMode) parts.push(`modalità casa: ${MODE_LABEL[this.settings.houseMode]}`);
     this.log(`Automazioni aggiornate${parts.length ? `: ${parts.join(', ')}` : ''}${user ? ` — da ${user}` : ''}`, null);
   }
 
@@ -184,8 +221,14 @@ export class Automations {
     const s = this.settings;
     // contano solo le persone con una posizione nota: una persona senza dispositivo collegato (stato "unknown")
     // o con il telefono non raggiungibile non deve far credere che la casa sia vuota
-    const all = (this.src.people?.() ?? []).filter(p => !s.persons.length || s.persons.includes(p.id));
-    const ppl = all.filter(p => p.state !== 'unknown' && p.state !== 'unavailable' && p.trackers > 0);
+    // presenze a mano scadute
+    let expired = false;
+    for (const [id, m] of Object.entries(this.presence)) if (m.until && now > m.until) { delete this.presence[id]; expired = true; this.log(`Fine della presenza a mano di ${this.personName(id)}: di nuovo dalla posizione del telefono`, null); }
+    if (expired) this.store.setSetting('presenza', this.presence);
+    const all: PersonView[] = (this.src.people?.() ?? []).filter(p => !s.persons.length || s.persons.includes(p.id))
+      .map(p => { const m = this.presence[p.id] ?? null; return { ...p, gpsHome: p.home, manual: m, home: m ? m.state === 'casa' : p.home }; });
+    // una presenza a mano vale sempre, anche senza telefono collegato
+    const ppl = all.filter(p => p.manual ? p.manual.state !== 'ignora' : p.state !== 'unknown' && p.state !== 'unavailable' && p.trackers > 0);
     const ignored = all.filter(p => !ppl.includes(p));
     const empty = ppl.length > 0 && ppl.every(p => !p.home);
     if (empty) this.emptySince ??= now; else this.emptySince = null;
@@ -195,10 +238,10 @@ export class Automations {
     if (s.houseMode === 'auto') {
       const away = this.emptySince != null && now - this.emptySince >= s.awayDelayMin * 60_000;
       mode = away ? 'fuori' : 'casa';
-      why = !ppl.length ? (all.length ? 'posizione delle persone sconosciuta: si segue il programma' : 'nessuna persona in Home Assistant: si segue il programma') : away ? `tutti fuori da ${Math.round((now - this.emptySince!) / 60_000)} min` : empty ? `tutti fuori, Fuori tra ${Math.max(0, Math.ceil((s.awayDelayMin * 60_000 - (now - this.emptySince!)) / 60_000))} min` : `in casa: ${ppl.filter(p => p.home).map(p => p.name).join(', ')}`;
+      why = !ppl.length ? (all.length ? 'posizione delle persone sconosciuta: si segue il programma' : 'nessuna persona in Home Assistant: si segue il programma') : away ? `tutti fuori da ${Math.round((now - this.emptySince!) / 60_000)} min` : empty ? `tutti fuori, Fuori tra ${Math.max(0, Math.ceil((s.awayDelayMin * 60_000 - (now - this.emptySince!)) / 60_000))} min` : `in casa: ${ppl.filter(p => p.home).map(p => p.manual ? `${p.name} (a mano)` : p.name).join(', ')}`;
     } else { mode = s.houseMode; why = 'scelta a mano'; }
-    if (ignored.length) why += ` (ignorate: ${ignored.map(p => `${p.name} ${p.trackers ? 'posizione sconosciuta' : 'senza dispositivo'}`).join(', ')})`;
-    return { mode, why, people: ppl, ignored, empty, emptySince: this.emptySince };
+    if (ignored.length) why += ` · ignorate: ${ignored.map(p => `${p.name} (${p.manual ? 'a mano' : p.trackers ? 'posizione sconosciuta' : 'senza dispositivo'})`).join(', ')}`;
+    return { mode, why, people: ppl, ignored, all, empty, emptySince: this.emptySince, houseMode: s.houseMode, vacationUntil: s.vacationUntil };
   }
 
   /** Calcola e applica l'obiettivo di ogni stanza. Chiamato a ogni ciclo, dopo la lettura. */

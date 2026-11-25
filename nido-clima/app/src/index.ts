@@ -11,12 +11,12 @@ import { houseDashboard } from './house.js';
 import { HttpError, MiniServer } from './http.js';
 import type { DataSource } from './types.js';
 import { Feeder } from './feeder.js';
-import { Automations, LEVEL_LABEL, MODE_LABEL } from './automations.js';
+import { Automations, LEVEL_LABEL, MODE_LABEL, PRESENCE_LABEL } from './automations.js';
 import { houseHumidity } from './humidity.js';
 import type { Action } from './controls.js';
 import { setupPlancia } from './plancia.js';
 
-const VERSION = "0.8.0";
+const VERSION = "0.8.1";
 const here = dirname(fileURLToPath(import.meta.url));
 
 async function main() {
@@ -229,13 +229,34 @@ async function main() {
       settings: autos.settings, house, decisions: autos.decisions, overrides: autos.overrides,
       rooms: src.rooms().map(r => ({ id: r.id, name: r.name, auto: autos.roomAuto(r) })),
       labels: { levels: LEVEL_LABEL, modes: MODE_LABEL },
-      people: src.people?.() ?? [], notify: await src.notifyServices?.() ?? [],
+      people: (src.people?.() ?? []).map(p => ({ ...p, manual: autos.presence[p.id] ?? null })), notify: await src.notifyServices?.() ?? [],
     };
   });
   app.post('/api/automations', async (_p, _q, req, body) => {
     try { autos.save(body ?? {}, who(req)); } catch (e) { throw new HttpError(400, e instanceof Error ? e.message : String(e)); }
     await autos.run(engine.views()).catch(() => {});
     return { ok: true, settings: autos.settings, decisions: autos.decisions };
+  });
+  // ── presenza: modalità della casa e persone, modificabili a mano subito ──
+  const presenceView = (req: any) => {
+    const house = autos.houseState();
+    const uid = req.headers['x-remote-user-id'];
+    const me = house.all.find(p => p.userId && p.userId === (Array.isArray(uid) ? uid[0] : uid))?.id ?? null;
+    return { house, me, enabled: autos.settings.enabled, labels: { modes: MODE_LABEL, presence: PRESENCE_LABEL } };
+  };
+  app.get('/api/presence', (_p, _q, req) => presenceView(req));
+  app.post('/api/presence', async (_p, _q, req, body) => {
+    const st = body?.state == null || body.state === 'auto' ? null : String(body.state);
+    try { autos.setPresence(String(body?.person), st as any, body?.hours ? Number(body.hours) : null, who(req)); }
+    catch (e) { throw new HttpError(400, e instanceof Error ? e.message : String(e)); }
+    await autos.run(engine.views()).catch(() => {});
+    return presenceView(req);
+  });
+  app.post('/api/automations/mode', async (_p, _q, req, body) => {
+    try { autos.setMode(String(body?.mode) as any, body?.vacationUntil, who(req)); }
+    catch (e) { throw new HttpError(400, e instanceof Error ? e.message : String(e)); }
+    await autos.run(engine.views()).catch(() => {});
+    return presenceView(req);
   });
   app.post('/api/automations/override', async (_p, _q, req, body) => {
     engine.panelCommand(String(body?.room), who(req));

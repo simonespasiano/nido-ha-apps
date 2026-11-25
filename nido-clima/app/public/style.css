@@ -347,3 +347,17 @@ table.mini { font-size: 13px; }
 .cb-cols h3 { margin: 0 0 6px; }
 .cb-hours { display: flex; align-items: flex-end; gap: 2px; height: 70px; border-bottom: 1px solid var(--line, #8884); }
 .cb-hours i { flex: 1; background: var(--c1); border-radius: 2px 2px 0 0; min-height: 1px; }
+
+/* barra della presenza */
+#presenza { padding: 0 16px; max-width: 1200px; margin: 0 auto; }
+.pz { border: 1px solid var(--line); border-radius: 12px; background: var(--card, var(--bg)); padding: 8px 12px; margin: 8px 0 4px; }
+.pz.away { border-color: var(--warn); }
+.pz-sum { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.pz-mode { font-weight: 700; }
+.pz-why { color: var(--muted); font-size: 13px; }
+.pz-sp { flex: 1; }
+.pz-body { border-top: 1px solid var(--line); margin-top: 8px; padding-top: 4px; }
+.pz-people { display: grid; gap: 8px; }
+.pz-p { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; padding: 6px 0; border-bottom: 1px dashed var(--line); }
+.pz-p small { font-size: 12px; }
+@media (max-width: 600px) { .pz-p .seg { width: 100%; } .pz-p .seg button { flex: 1; padding: 7px 6px; } }

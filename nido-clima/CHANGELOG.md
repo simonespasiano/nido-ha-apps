@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.1
+
+- **Presenza a mano**: nuova barra sempre visibile sopra le schede (anche nella plancia) con la modalità della casa e il motivo. Per ogni persona si può scegliere *Dal telefono*, *In casa*, *Fuori* o *Non conta*, per 4 ore, 12 ore, 1, 3 o 7 giorni oppure finché non la cambi. Serve quando la posizione del telefono sbaglia e NIDO crede la casa vuota
+- Pulsante **Sono a casa** quando la casa è su Fuori ma chi guarda il pannello è in casa
+- La **modalità della casa** si cambia subito con un tocco, senza dover salvare; il salvataggio delle automazioni non la riporta più indietro
+- Nel Diario: chi ha cambiato presenza o modalità, e quando una presenza a mano scade
+
 ## 0.8.0
 
 - **Plancia NIDO Clima**: all'avvio l'app crea la plancia *NIDO Clima* con l'app a tutto schermo. Si può scegliere come **pagina iniziale** di Home Assistant e riordinare come le altre plance; l'accesso resta protetto come nel pannello laterale. Si disattiva con la nuova opzione `plancia`
