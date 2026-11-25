@@ -221,11 +221,14 @@ export class DemoSource implements DataSource {
     };
   }
 
+  /** Stanze in cui la valvola "perde" i comandi di temperatura (per provare i casi Zigbee). */
+  deaf = new Set<string>();
   async act(room: Room, a: Action): Promise<string> {
     const sim = this.sim(room);
     const call = buildCall(this.controls(room), a);
     const now = Date.now();
     if (call.domain === 'climate') this.changes.set(room.id, { ts: now, by: { origin: 'nido', who: 'NIDO' } });
+    if (call.service === 'set_temperature' && this.deaf.has(room.id)) return 'comando perso (demo)';
     if (call.service === 'set_temperature') sim.manual = { value: call.data.temperature as number, scheduled: scheduled(sim, now) };
     else if (call.service === 'set_hvac_mode') sim.mode = call.data.hvac_mode as 'heat' | 'off';
     else if (call.service === 'set_preset_mode') {

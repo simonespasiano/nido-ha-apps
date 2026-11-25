@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.3
+
+- **Corretto**: un comando di NIDO che non arrivava alla valvola (Zigbee perso, valvola addormentata) veniva scambiato per un cambio a mano. La stanza restava così al valore precedente, per esempio quello di *Fuori casa*, fino al cambio di programma successivo. Ora NIDO riconosce che la valvola è rimasta al valore di prima, rimanda il comando ogni pochi minuti e lo scrive nel Diario; dopo 4 tentativi avvisa di controllare la valvola in Zigbee2MQTT
+- I cambi veri sulla valvola (ghiera, app, Home Assistant) restano riconosciuti come prima
+
 ## 0.8.2
 
 - **Da dove arriva la posizione?** Nella barra della presenza, per ogni persona: i dispositivi collegati, quale decide lo stato (★), distanza dalla zona Casa, precisione, ultimo aggiornamento, indirizzo calcolato dal telefono e link alla mappa. Con suggerimenti quando un altro dispositivo (auto, tablet, vecchio telefono) fa risultare fuori, la zona Casa è troppo piccola o il GPS è impreciso

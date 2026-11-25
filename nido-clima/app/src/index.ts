@@ -16,7 +16,7 @@ import { houseHumidity } from './humidity.js';
 import type { Action } from './controls.js';
 import { setupPlancia } from './plancia.js';
 
-const VERSION = "0.8.2";
+const VERSION = "0.8.3";
 const here = dirname(fileURLToPath(import.meta.url));
 
 async function main() {
@@ -286,6 +286,7 @@ async function main() {
     return { results };
   });
 
+  if (DEMO) app.post('/api/demo/valve', (_p, _q, _r, body) => { const d = (src as DemoSource).deaf; body?.deaf ? d.add(String(body.room)) : d.delete(String(body?.room)); return { ok: true }; });
   if (DEMO) app.post('/api/demo/person', (_p, _q, _r, body) => { (src as DemoSource).setPerson(String(body?.id), !!body?.home); return { ok: true }; });
 
   app.get('/api/settings', () => ({

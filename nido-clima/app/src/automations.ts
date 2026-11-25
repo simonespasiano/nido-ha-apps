@@ -140,7 +140,8 @@ export interface RoomDecision {
 export class Automations {
   settings: AutoSettings;
   overrides: Record<string, Override>;
-  private applied = new Map<string, { value: number; ts: number }>();
+  /** Ultimo obiettivo mandato da NIDO: prev è il valore che la valvola aveva prima, finché non conferma il nuovo. */
+  private applied = new Map<string, { value: number; ts: number; prev?: number | null; tries?: number }>();
   private windows = new Map<string, { since: number; until: number; tempAt: number }>();
   private emptySince: number | null = null;
   private lastNotify = new Map<string, number>();
@@ -302,7 +303,11 @@ export class Automations {
       if (ov && now > ov.until) { delete this.overrides[room.id]; this.applied.delete(room.id); this.store.setSetting('override', this.overrides); this.log('Fine dell\'intervento manuale: si torna al programma', room.id); ov = null; }
       // cambio fatto sulla valvola (ghiera o app): lo si rispetta fino al prossimo cambio di programma
       const ap = this.applied.get(room.id);
-      if (s.enabled && ra.enabled && sample?.setpoint != null && ap && now - ap.ts > 3 * 60_000 && Math.abs(sample.setpoint - ap.value) >= 0.5 && !win
+      // la valvola ha confermato l'ultimo comando: da qui in poi un valore diverso è un cambio vero
+      if (ap && sample?.setpoint != null && Math.abs(sample.setpoint - ap.value) < 0.25) { ap.prev = null; ap.tries = 0; }
+      // la valvola è rimasta al valore di prima: il comando di NIDO non è arrivato, non è un cambio a mano
+      const notTaken = !!ap && ap.prev != null && sample?.setpoint != null && Math.abs(sample.setpoint - ap.prev) < 0.25;
+      if (s.enabled && ra.enabled && sample?.setpoint != null && ap && !notTaken && now - ap.ts > 3 * 60_000 && Math.abs(sample.setpoint - ap.value) >= 0.5 && !win
           && (!ov || Math.abs(sample.setpoint - ov.value) >= 0.5)) {
         ov = { value: sample.setpoint, until: sch.next, source: 'valvola' };
         this.overrides[room.id] = ov; this.store.setSetting('override', this.overrides);
@@ -318,14 +323,21 @@ export class Automations {
       else if (sample?.setpoint == null) skipped = 'obiettivo della valvola non leggibile';
       if (managed && !skipped && Math.abs((sample!.setpoint as number) - target) >= 0.25 && this.src.act) {
         const last = this.applied.get(room.id);
-        if (!last || last.value !== target || now - last.ts > 10 * 60_000) {
+        const retry = !!last && last.value === target && notTaken && now - last.ts > 3 * 60_000;
+        if (!last || last.value !== target || now - last.ts > 10 * 60_000 || retry) {
           try {
+            const before = sample!.setpoint as number;
             await this.src.act(room, { action: 'set_temperature', value: target });
-            this.applied.set(room.id, { value: target, ts: now });
-            if (sample) sample.setpoint = target;
-            this.log(`Obiettivo ${fmt(target)} °C · ${reasons[reasons.length - 1]}`, room.id);
+            const tries = retry ? (last!.tries ?? 0) + 1 : 0;
+            this.applied.set(room.id, { value: target, ts: now, prev: retry ? last!.prev : before, tries });
+            // il valore della valvola resta quello letto: lo confermerà lei alla prossima lettura
+            if (retry) {
+              this.log(`La valvola è rimasta a ${fmt(before)} °C: il comando di NIDO non è arrivato, lo rimando (${fmt(target)} °C, tentativo ${tries + 1})`, room.id);
+              if (tries === 3) this.log(`La valvola non accetta i comandi da 4 tentativi: controlla che sia raggiungibile in Zigbee2MQTT (batteria, segnale)`, room.id);
+            } else this.log(`Obiettivo ${fmt(target)} °C · ${reasons[reasons.length - 1]}`, room.id);
           } catch (e) { skipped = `comando non riuscito: ${e instanceof Error ? e.message : e}`; }
         }
+        if (notTaken && (last?.tries ?? 0) >= 3) reasons.push(`la valvola non ha ancora preso il comando (resta a ${fmt(last!.prev!)} °C)`);
       } else if (managed && !skipped && sample?.setpoint != null && !this.applied.has(room.id)) this.applied.set(room.id, { value: sample.setpoint, ts: now });
 
       this.humidityNotify(room, sample, out, now);
