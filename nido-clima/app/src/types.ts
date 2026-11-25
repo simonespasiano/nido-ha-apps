@@ -82,6 +82,7 @@ export interface DataSource {
   valveLink?(room: Room): ValveLink;
   /** Chi ha cambiato da poco l'obiettivo (o la modalità) di una stanza. */
   attribute?(room: Room, value: number | string | null, now: number): Attribution;
+  presenceDetail?(): PresenceDetail;
   people?(): { id: string; name: string; home: boolean; state: string; trackers: number; userId?: string | null }[];
   notifyServices?(): Promise<string[]>;
 }
@@ -124,4 +125,15 @@ export interface Diagnosis {
   areas: AreaDiagnosis[];
   unassigned: string[];
   mode: 'auto' | 'manuale';
+}
+
+/** Da dove arriva la presenza di ogni persona: i suoi dispositivi, la zona Casa e la distanza. */
+export interface TrackerInfo {
+  id: string; name: string; state: string; sourceType: string | null;
+  lat: number | null; lon: number | null; accuracy: number | null; distance: number | null;
+  updated: string | null; address: string | null; isSource: boolean;
+}
+export interface PresenceDetail {
+  home: { lat: number; lon: number; radius: number; name: string } | null;
+  people: { id: string; name: string; state: string; source: string | null; updated: string | null; lat: number | null; lon: number | null; distance: number | null; trackers: TrackerInfo[] }[];
 }

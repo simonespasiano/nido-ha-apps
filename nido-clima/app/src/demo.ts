@@ -66,6 +66,25 @@ export class DemoSource implements DataSource {
   home = new Map<string, boolean>();
   setPerson(id: string, home: boolean) { if (this.home.has(id)) this.home.set(id, home); }
   people() { return [...this.home].map(([id, home]) => ({ id, name: id === 'person.simone' ? 'Simone' : 'Giulia', home, state: home ? 'home' : 'not_home', trackers: 1 })); }
+  presenceDetail() {
+    const home = { lat: 45.53, lon: 9.28, radius: 100, name: 'Casa' };
+    const ago = (m: number) => new Date(Date.now() - m * 60_000).toISOString();
+    return {
+      home, people: this.people().map(p => {
+        const slug = p.id.split('.')[1], away = !p.home;
+        // Simone: il telefono è a casa ma l'auto, collegata alla stessa persona e aggiornata dopo, la dà fuori
+        const car = slug === 'simone';
+        const phone = { id: `device_tracker.iphone_di_${slug}`, name: `iPhone di ${p.name}`, state: away && !car ? 'not_home' : 'home', sourceType: 'gps',
+          lat: away && !car ? 45.5585 : 45.5301, lon: away && !car ? 9.2551 : 9.2802, accuracy: away && !car ? 35 : 12, distance: away && !car ? 3540 : 15, updated: ago(9),
+          address: away && !car ? 'Via Roma 12, 20093 Cologno Monzese MI, Italia' : 'Via di casa 1, 20093 Cologno Monzese MI, Italia', isSource: !(away && car) };
+        const trackers: any[] = [phone];
+        if (car) trackers.push({ id: 'device_tracker.auto_location', name: 'Auto', state: away ? 'not_home' : 'home', sourceType: 'gps', lat: away ? 45.5412 : 45.5302, lon: away ? 9.3011 : 9.2803,
+          accuracy: 5, distance: away ? 2050 : 20, updated: ago(1), address: null, isSource: away });
+        const src = trackers.find(t => t.isSource);
+        return { id: p.id, name: p.name, state: p.state, source: src.id, updated: ago(1), lat: src.lat, lon: src.lon, distance: src.distance, trackers };
+      }),
+    };
+  }
   async notifyServices() { return ['mobile_app_iphone_di_simone']; }
 
   async service(domain: string, service: string, entityId: string | null, data: Record<string, unknown>) {

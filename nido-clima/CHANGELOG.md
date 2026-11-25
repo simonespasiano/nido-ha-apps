@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.2
+
+- **Da dove arriva la posizione?** Nella barra della presenza, per ogni persona: i dispositivi collegati, quale decide lo stato (★), distanza dalla zona Casa, precisione, ultimo aggiornamento, indirizzo calcolato dal telefono e link alla mappa. Con suggerimenti quando un altro dispositivo (auto, tablet, vecchio telefono) fa risultare fuori, la zona Casa è troppo piccola o il GPS è impreciso
+- Nel Diario ogni cambio di stato di una persona, con dispositivo, distanza e indirizzo
+- Sul telefono le pagine non scorrono più di lato (scheda Casa)
+
 ## 0.8.1
 
 - **Presenza a mano**: nuova barra sempre visibile sopra le schede (anche nella plancia) con la modalità della casa e il motivo. Per ogni persona si può scegliere *Dal telefono*, *In casa*, *Fuori* o *Non conta*, per 4 ore, 12 ore, 1, 3 o 7 giorni oppure finché non la cambi. Serve quando la posizione del telefono sbaglia e NIDO crede la casa vuota

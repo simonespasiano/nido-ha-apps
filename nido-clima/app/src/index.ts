@@ -16,7 +16,7 @@ import { houseHumidity } from './humidity.js';
 import type { Action } from './controls.js';
 import { setupPlancia } from './plancia.js';
 
-const VERSION = "0.8.1";
+const VERSION = "0.8.2";
 const here = dirname(fileURLToPath(import.meta.url));
 
 async function main() {
@@ -242,7 +242,7 @@ async function main() {
     const house = autos.houseState();
     const uid = req.headers['x-remote-user-id'];
     const me = house.all.find(p => p.userId && p.userId === (Array.isArray(uid) ? uid[0] : uid))?.id ?? null;
-    return { house, me, enabled: autos.settings.enabled, labels: { modes: MODE_LABEL, presence: PRESENCE_LABEL } };
+    return { house, me, enabled: autos.settings.enabled, labels: { modes: MODE_LABEL, presence: PRESENCE_LABEL }, detail: src.presenceDetail?.() ?? null };
   };
   app.get('/api/presence', (_p, _q, req) => presenceView(req));
   app.post('/api/presence', async (_p, _q, req, body) => {

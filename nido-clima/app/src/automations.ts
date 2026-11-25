@@ -157,6 +157,23 @@ export class Automations {
     this.presence = store.getSetting<Record<string, PresenceOverride>>('presenza') ?? {};
   }
 
+  private lastPerson = new Map<string, string>();
+  /** Nel Diario ogni cambio di stato di una persona, con il dispositivo che l'ha deciso e la distanza da casa. */
+  private trackPeople() {
+    const det = this.src.presenceDetail?.();
+    for (const p of this.src.people?.() ?? []) {
+      const prev = this.lastPerson.get(p.id);
+      this.lastPerson.set(p.id, p.state);
+      if (prev == null || prev === p.state) continue;
+      const d = det?.people.find(x => x.id === p.id);
+      const t = d?.trackers.find(x => x.isSource);
+      const where = p.state === 'home' ? 'in casa' : p.state === 'not_home' ? 'fuori' : ['unknown', 'unavailable'].includes(p.state) ? 'posizione sconosciuta' : p.state;
+      const km = d?.distance != null ? (d.distance < 1000 ? `${d.distance} m` : `${(d.distance / 1000).toFixed(1).replace('.', ',')} km`) : null;
+      const man = this.presence[p.id] ? ' — ignorato: presenza impostata a mano' : '';
+      this.log(`${p.name}: ${where} secondo Home Assistant${t ? ` (da ${t.name}${km ? `, a ${km} da casa` : ''}${t.address ? `, ${t.address}` : ''})` : km ? ` (a ${km} da casa)` : ''}${man}`, null);
+    }
+  }
+
   private personName(id: string) { return (this.src.people?.() ?? []).find(p => p.id === id)?.name ?? id.replace(/^person\./, ''); }
 
   /** Presenza a mano di una persona (null = di nuovo dalla posizione del telefono). */
@@ -221,6 +238,7 @@ export class Automations {
     const s = this.settings;
     // contano solo le persone con una posizione nota: una persona senza dispositivo collegato (stato "unknown")
     // o con il telefono non raggiungibile non deve far credere che la casa sia vuota
+    this.trackPeople();
     // presenze a mano scadute
     let expired = false;
     for (const [id, m] of Object.entries(this.presence)) if (m.until && now > m.until) { delete this.presence[id]; expired = true; this.log(`Fine della presenza a mano di ${this.personName(id)}: di nuovo dalla posizione del telefono`, null); }

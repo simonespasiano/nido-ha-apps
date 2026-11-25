@@ -71,6 +71,8 @@ Sopra le schede c'è sempre la barra della **presenza**: dice in che modalità �
 
 Serve quando la posizione di un telefono sbaglia: se NIDO crede che tu sia fuori e non scalda, metti te stesso su **In casa** e il riscaldamento torna subito al programma. Quando la casa è su Fuori e il telefono di chi guarda il pannello lo dà fuori, compare anche il pulsante **Sono a casa** (vale 12 ore). Le presenze a mano attive restano segnalate con ✋ nella barra e finiscono nel Diario.
 
+**Da dove arriva la posizione?** Accanto a ogni persona il link apre il dettaglio: lo stato che Home Assistant dà alla persona e, per ogni dispositivo collegato, stato, distanza dalla zona Casa, precisione del GPS, ultimo aggiornamento e indirizzo (quello calcolato dal telefono, dal sensore *geocoded location* dell'app Companion). La ★ indica il dispositivo che decide lo stato: Home Assistant usa quello **aggiornato più di recente**. Così se alla persona è collegata anche l'auto, un tablet o un vecchio telefono, basta quello per farla risultare fuori anche se il telefono dice casa. Sotto compaiono i suggerimenti per i casi più comuni (dispositivo sbagliato collegato, zona Casa troppo piccola, GPS impreciso, posizione non aggiornata). Ogni cambio di stato di una persona finisce nel Diario con dispositivo, distanza e indirizzo.
+
 **Notifiche per arieggiare**: scegli i servizi notify nel riquadro Umidità intelligente. L'avviso arriva dopo un picco improvviso (es. +10 punti in pochi minuti dopo la doccia) o con umidità sopra la soglia da 30 minuti. Arriva solo se fuori l'aria contiene meno vapore che dentro e al massimo ogni 3 ore per stanza.
 
 ## Chi cambia la temperatura

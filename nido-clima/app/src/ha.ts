@@ -1,6 +1,12 @@
-import type { Attribution, AreaDiagnosis, DataSource, Diagnosis, EntityInfo, PlantStatus, Room, RoomStatus, Sample } from './types.js';
+import type { Attribution, AreaDiagnosis, DataSource, Diagnosis, EntityInfo, PlantStatus, PresenceDetail, Room, TrackerInfo, RoomStatus, Sample } from './types.js';
 import type { Options } from './config.js';
 import { buildCall, describeClimate, describeControl, type Action, type DeviceControl, type RoomControls } from './controls.js';
+
+function haversine(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6_371_000, r = (d: number) => d * Math.PI / 180;
+  const a = Math.sin(r(lat2 - lat1) / 2) ** 2 + Math.cos(r(lat1)) * Math.cos(r(lat2)) * Math.sin(r(lon2 - lon1) / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
 
 interface HAState {
   entity_id: string;
@@ -335,6 +341,39 @@ export class HASource implements DataSource {
   people() {
     return [...this.states.values()].filter(s => s.entity_id.startsWith('person.'))
       .map(s => ({ id: s.entity_id, name: s.attributes.friendly_name ?? s.entity_id, home: s.state === 'home', state: s.state, trackers: Array.isArray(s.attributes.device_trackers) ? s.attributes.device_trackers.length : 0, userId: s.attributes.user_id ?? null }));
+  }
+
+  /** Dettaglio della presenza: per ogni persona i dispositivi collegati, quello che decide lo stato, distanza e indirizzo. */
+  presenceDetail(): PresenceDetail {
+    const z = this.states.get('zone.home');
+    const home = z && typeof z.attributes.latitude === 'number'
+      ? { lat: z.attributes.latitude, lon: z.attributes.longitude, radius: Number(z.attributes.radius ?? 100), name: z.attributes.friendly_name ?? 'Casa' }
+      : this.loc ? { lat: this.loc.lat, lon: this.loc.lon, radius: 100, name: this.loc.name } : null;
+    const dist = (lat: any, lon: any) => home && typeof lat === 'number' && typeof lon === 'number' ? Math.round(haversine(home.lat, home.lon, lat, lon)) : null;
+    const people = [...this.states.values()].filter(s => s.entity_id.startsWith('person.')).map(p => {
+      const ids: string[] = Array.isArray(p.attributes.device_trackers) ? p.attributes.device_trackers : [];
+      const trackers: TrackerInfo[] = ids.map(id => {
+        const t = this.states.get(id);
+        const a = t?.attributes ?? {};
+        // l'app Companion crea anche sensor.<telefono>_geocoded_location con l'indirizzo calcolato dal telefono
+        const geo = this.states.get(`sensor.${id.split('.')[1]}_geocoded_location`);
+        return {
+          id, name: a.friendly_name ?? id, state: t?.state ?? 'non trovato', sourceType: a.source_type ?? null,
+          lat: typeof a.latitude === 'number' ? a.latitude : null, lon: typeof a.longitude === 'number' ? a.longitude : null,
+          accuracy: typeof a.gps_accuracy === 'number' ? a.gps_accuracy : null, distance: dist(a.latitude, a.longitude),
+          updated: (t as any)?.last_updated ?? t?.last_changed ?? null,
+          address: geo && !['unknown', 'unavailable'].includes(geo.state) ? geo.state : null,
+          isSource: p.attributes.source === id,
+        };
+      });
+      return {
+        id: p.entity_id, name: p.attributes.friendly_name ?? p.entity_id, state: p.state, source: p.attributes.source ?? null,
+        updated: (p as any).last_updated ?? p.last_changed ?? null,
+        lat: typeof p.attributes.latitude === 'number' ? p.attributes.latitude : null, lon: typeof p.attributes.longitude === 'number' ? p.attributes.longitude : null,
+        distance: dist(p.attributes.latitude, p.attributes.longitude), trackers,
+      };
+    });
+    return { home, people };
   }
 
   async notifyServices(): Promise<string[]> {
